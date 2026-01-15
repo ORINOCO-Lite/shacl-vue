@@ -1,23 +1,65 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 
+const forgejoIcon = `
+<svg viewBox="0 0 212 212" xmlns="http://www.w3.org/2000/svg">
+  <metadata
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:cc="http://creativecommons.org/ns#"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+  >
+    <rdf:RDF>
+      <cc:Work rdf:about="https://codeberg.org/forgejo/meta/src/branch/readme/branding#logo">
+        <dc:title>Forgejo logo</dc:title>
+        <cc:creator rdf:resource="https://caesarschinas.com/"><cc:attributionName>Caesar Schinas</cc:attributionName></cc:creator>
+        <cc:license rdf:resource="http://creativecommons.org/licenses/by-sa/4.0/" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <style type="text/css">
+    circle {
+      fill: none;
+      stroke: #000;
+      stroke-width: 15;
+    }
+    path {
+      fill: none;
+      stroke: #000;
+      stroke-width: 25;
+    }
+    .orange {
+      stroke:#ff6600;
+    }
+    .red {
+      stroke:#d40000;
+    }
+  </style>
+  <g transform="translate(6,6)">
+    <path d="M58 168 v-98 a50 50 0 0 1 50-50 h20" class="orange" />
+    <path d="M58 168 v-30 a50 50 0 0 1 50-50 h20" class="red" />
+    <circle cx="142" cy="20" r="18" class="orange" />
+    <circle cx="142" cy="88" r="18" class="red" />
+    <circle cx="58" cy="180" r="18" class="red" />
+  </g>
+</svg>
+`
+
 // https://vitepress.dev/reference/site-config
 const config = defineConfig({
-  base: "/shacl-vue/docs/",
+  base: "/",
   title: "shacl-vue",
   description: "Automatic generation of user interfaces from SHACL",
-  head: [['link', { rel: 'icon', href: '/shacl-vue/docs/favicon.ico' }]],
+  head: [['link', { rel: 'icon', href: 'favicon.ico' }]],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     search: {
       provider: 'local'
     },
-    logo: '/shacl_vue.svg',
+    logo: 'shacl_vue.svg',
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Get started', link: '/get-started' }
     ],
-
     sidebar: [
       {
         items: [
@@ -63,13 +105,17 @@ const config = defineConfig({
         link: '/contributing'
       },
       {
-	text: 'Acknowledgements',
-	link: '/acknowledgements'
-	}
+        text: 'Acknowledgements',
+        link: '/acknowledgements'
+      }
     ],
-
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/psychoinformatics-de/shacl-vue' }
+      {
+        icon: {
+          svg: forgejoIcon
+        },
+        link: 'https://hub.psychoinformatics.de/datalink/shacl-vue'
+      }
     ]
   }
 })
