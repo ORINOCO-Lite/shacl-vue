@@ -25,4 +25,4 @@ jobs:
         run: npm run docs:build
 
       - name: Deploy
-        run: cp -r docs/.vitepress/dist/* /www/shacl-vue.psychoinformatics.de-new/ && (test -d && mv /www/shacl-vue.psychoinformatics.de /www/shacl-vue.psychoinformatics.de-old || true); mv /www/shacl-vue.psychoinformatics.de-new /www/shacl-vue.psychoinformatics.de; rm -rf /www/shacl-vue.psychoinformatics.de-old
+        run: cp -r docs/.vitepress/dist /www/shacl-vue.psychoinformatics.de-new && (test -d && mv /www/shacl-vue.psychoinformatics.de /www/shacl-vue.psychoinformatics.de-old || true); mv /www/shacl-vue.psychoinformatics.de-new /www/shacl-vue.psychoinformatics.de; rm -rf /www/shacl-vue.psychoinformatics.de-old
