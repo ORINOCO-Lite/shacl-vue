@@ -13,7 +13,7 @@ Think of it as an automatic builder that you just have to feed with a model of y
 ## Links
 
 - For an example of a deployed `shacl-vue` instance, see the [metadata annotation tool](https://annotate.trr379.de/s/demo/) of the [TRR379 Research Consortium](https://www.trr379.de/)
-- Refer to the (possibly outdated) [documentation](https://psychoinformatics-de.github.io/shacl-vue/docs/) for more information.
+- Refer to the [documentation](https://shacl-vue.psychoinformatics.de) for more information.
 
 ## Installation and usage
 
@@ -42,7 +42,7 @@ const myconfig = 'config.json';
 </script>
 ```
 
-Here, `config.json` is used to configure the properties of the specific `shacl-vue` deployment. See examples [here](https://github.com/psychoinformatics-de/shacl-vue/blob/main/public/config.json), and [here](https://hub.trr379.de/q04/annotate.trr379.de-demo/src/branch/main/dist/config.json).
+Here, `config.json` is used to configure the properties of the specific `shacl-vue` deployment. See examples [here](https://hub.psychoinformatics.de/datalink/shacl-vue/raw/branch/main/public/config_default.json), and [here](https://hub.trr379.de/q04/annotate.trr379.de-demo/src/branch/main/dist/config.json).
 
 For the above to work, the VueJS application will have to install `Vuetify` and the `ShaclVue` might need to be [registered explicitly](https://vuejs.org/guide/components/registration).
 
@@ -57,7 +57,7 @@ To use `shacl-vue` to deploy a standalone site, follow the build steps below. In
 The `shacl-vue` source code can be cloned for local development, testing, or building. First clone the repository:
 
 ```
-git clone https://github.com/psychoinformatics-de/shacl-vue.git
+git clone https://hub.psychoinformatics.de/datalink/shacl-vue.git
 cd shacl-vue
 ```
 
@@ -116,7 +116,7 @@ In an effort to generalize `shacl-vue` for improved use by and interoperability 
 
 ## Access to external webservices
 
-Unless configured to connect to specific API endpoints (see [Service API integration docs](https://psychoinformatics-de.github.io/shacl-vue/docs/app-configuration.html#service-api-integration)), a client accessing a bundled `shacl-vue` deployment does not load any external resources. All required resources are loaded from the server where the bundled application is hosted.
+Unless configured to connect to specific API endpoints (see [Service API integration docs](https://shacl-vue.psychoinformatics.de/app-configuration.html#service-api-integration)), a client accessing a bundled `shacl-vue` deployment does not load any external resources. All required resources are loaded from the server where the bundled application is hosted.
 
 ## Acknowledgements
 
