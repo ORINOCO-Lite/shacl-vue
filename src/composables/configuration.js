@@ -197,7 +197,7 @@ export function useConfig(url) {
     async function loadAllContent() {
         if (configVarsMain.content && Object.keys(configVarsMain.content).length > 0) {
             for (const src of Object.keys(configVarsMain.content)) {
-                configVarsMain.content[src].value = await loadContent(configVarsMain.content[src].ur, 'text')
+                configVarsMain.content[src].value = await loadContent(configVarsMain.content[src].url, 'text')
             }
         }
     }

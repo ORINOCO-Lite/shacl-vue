@@ -22,6 +22,8 @@
             <v-col class="d-flex align-stretch justify-center" style="padding: 0; padding-left: 2px;">
                 <GitAnnexUploader
                     :config="uploadConfig"
+                    :disabled="disableUpload"
+                    :disabled_msg="disableUploadMessage"
                     @uploadComplete="onUploadComplete"
                 />
             </v-col>
@@ -43,6 +45,8 @@ import GitAnnexUploader from '@/components/GitAnnexUploader.vue'
 import { useCompConfig } from '@/composables/useCompConfig';
 const { namedNode } = DataFactory;
 const triggerListGenAndItemSelect = ref(false)
+const disableUpload = ref(false)
+const disableUploadMessage = ref('')
 provide('triggerListGenAndItemSelect', triggerListGenAndItemSelect);
 
 // ----- //
@@ -134,6 +138,11 @@ onBeforeMount(async () => {
 onMounted( () => {
     const compClass = toCURIE(props.property_shape[SHACL.class.value], allPrefixes)
     const compClassConfig = componentConfig[compClass]
+    if (!compClassConfig) {
+        disableUpload.value = true;
+        disableUploadMessage.value = compClass;
+        return;
+    }
     templates.pid = compClassConfig.pid_template;
     templates.ttl = getContent(configVarsMain.content, compClassConfig.ttl_template)
 })
@@ -151,7 +160,8 @@ async function onUploadComplete(result) {
         // This prevents duplications.
         if (createdDistributions.has(hash)) return;
         const TTLdata = { name, size, hash, annexKey, downloadUrl }
-        TTLdata.pid = fillStringTemplate(templates.pid, {})
+        TTLdata.pid = fillStringTemplate(templates.pid, TTLdata)
+        TTLdata.pid = toIRI(TTLdata.pid, allPrefixes)
         let newTTL = fillStringTemplate(templates.ttl, TTLdata)
         let newQuads = await rdfDS.parseTTLandDedup(newTTL);
         rdfDS.triggerReactivity();

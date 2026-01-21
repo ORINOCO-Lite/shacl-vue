@@ -76,6 +76,7 @@
     },
     "class_icons": {
         "https://concepts.datalad.org/s/flat/unreleased/AnnotationTag": "mdi-tag-outline",    
+        "https://concepts.datalad.org/s/flat/unreleased/FlatAnnotation": "mdi-tag-text",
         "https://concepts.datalad.org/s/flat/unreleased/FlatAttributeSpecification": "mdi-playlist-check",
         "https://concepts.datalad.org/s/flat/unreleased/FlatProperty": "mdi-contain-start",
         "https://concepts.datalad.org/s/flat/unreleased/FlatStatement": "mdi-comment-text-outline",
