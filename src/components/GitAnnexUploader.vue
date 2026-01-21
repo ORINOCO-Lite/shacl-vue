@@ -2,11 +2,13 @@
     <v-card
         class="drag-drop-area"
         :class="{ dragover: isDragging }"
-        @click="onCardClick"
+        @click="onCardClickGuarded"
         @dragover.prevent="onDragOver"
         @dragleave.prevent="onDragLeave"
         @drop.prevent="onFileDrop"
         variant="outlined"
+        :disabled="props.disabled"
+        ref="mainCard"
     >
         <!-- Hidden file input -->
         <input
@@ -53,6 +55,11 @@
             </v-row>
         </v-tooltip>
     </v-card>
+    <v-tooltip location="bottom" v-if="props.disabled" :activator="mainCard">
+        The uploading functionality is disabled due to non-existing configuration for:
+        <br>
+        <code>component_config["InstancesUploadEditor"]["{{ props.disabled_msg }}"]</code>
+    </v-tooltip>
 </template>
 
 <script setup>
@@ -60,9 +67,12 @@ import { ref, inject, toRaw, onMounted} from 'vue'
 
 const props = defineProps({
     config: Object,
+    disabled: Boolean,
+    disabled_msg: String,
 });
 import { useToken } from '@/composables/tokens';
 const { token, setToken, clearToken } = useToken();
+const mainCard = ref(null);
 const tokenExists = ref(false)
 const emit = defineEmits(['uploadComplete'])
 const isDragging = ref(false)
@@ -121,6 +131,15 @@ const onFileDrop = (event) => {
     if (file) {
         validateAndReadFile(file)
     }
+}
+
+const onCardClickGuarded = (event) => {
+    if (props.disabled) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        return
+    }
+    onCardClick()
 }
 
 const onCardClick = () => {
@@ -263,5 +282,13 @@ const uploadFile = async () => {
 
 .hidden {
     display: none;
+}
+
+.v-card--disabled {
+    pointer-events: auto;
+}
+
+.v-card--disabled * {
+  pointer-events: none;
 }
 </style>
