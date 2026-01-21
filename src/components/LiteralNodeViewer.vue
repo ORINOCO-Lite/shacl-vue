@@ -1,5 +1,5 @@
 <template>
-    <div style="margin: 0; padding: 0; display: inline;">
+    <div class="literal-node-viewer">
         <span v-if="isTruncated && props.wrap != 'wrap'">
             <v-btn
                 density="compact"
@@ -10,7 +10,7 @@
                 @click="expandBtnOnclick()">
             </v-btn>&nbsp;
         </span>
-        <span v-if="isLink && allowLink" @click="expandBtnOnclick()">
+        <span v-if="isLink && allowLink">
             <a :href="hrefVal" target="_blank" ref="el" :class="computedClass" :style="computedStyle">{{ contentVal }}</a>
         </span>
         <span v-else ref="el" :class="computedClass" :style="computedStyle" @click="expandBtnOnclick()">{{ textVal }}</span>
@@ -60,11 +60,27 @@ onBeforeMount(() => {
     }
     return;
 });
-onMounted( () => {
-    if (props.wrap === 'nowrap' && el.value) {
-        isTruncated.value = el.value.scrollWidth > el.value.clientWidth
+// onMounted( () => {
+//     if (props.wrap === 'nowrap' && el.value) {
+//         isTruncated.value = el.value.scrollWidth > el.value.clientWidth
+//     }
+// })
+
+onMounted(() => {
+    if (!el.value || props.wrap !== 'nowrap') return;
+
+    const element = el.value;
+    const isOverflowing = element.scrollWidth > element.clientWidth;
+    const noBreaks = cannotBreak(props.textVal);
+
+    isTruncated.value = isOverflowing;
+
+    // Auto-expand
+    if (noBreaks && isOverflowing) {
+        btnExpanded.value = true;
+        localWrap.value = 'wrap';
     }
-})
+});
 const computedStyle = computed(() => {
     const style = {};
     if (localWrap.value === 'nowrap') {
@@ -87,6 +103,12 @@ function expandBtnOnclick() {
     }
 
 }
+
+function cannotBreak(text) {
+    // no spaces, tabs, or soft break chars
+    return !/[\s\u200B\u00AD]/.test(text);
+}
+
 </script>
 
 <style scoped>
@@ -103,5 +125,14 @@ function expandBtnOnclick() {
     text-overflow: ellipsis;
     display: inline-block;
     vertical-align: bottom;
+}
+.literal-node-viewer {
+    margin: 0;
+    padding: 0;
+    display: inline;
+}
+.wrap-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 </style>
