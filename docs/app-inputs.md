@@ -6,7 +6,7 @@ layout: doc
 
 ## Required/recommended inputs
 
-`shacl-vue` needs 4 inputs to function as expected:
+`shacl-vue` needs 4 inputs to function as expected, most supplied via a configuration file:
 
 1. A SHACL shapes graph with annotated `NodeShape`s and `PropertyShape`s (required)
 2. An OWL file with the class hierarchy of the classes mentioned in the shapes graph, detailing subclass relationships (required)
@@ -14,10 +14,10 @@ layout: doc
 4. A set of matchable editor components that will be self-selected and rendered in a form, based on the SHACL shapes (required, with existing defaults)
 
 The current application sources already contain:
-- a sample [SHACL shapes graph](https://github.com/psychoinformatics-de/shacl-vue/blob/main/public/dlschemas_shacl.ttl),
-- a sample [class hierarchy](https://github.com/psychoinformatics-de/shacl-vue/blob/main/public/dlschemas_owl.ttl),
-- a sample [data graph](https://github.com/psychoinformatics-de/shacl-vue/blob/main/public/dlschemas_data.ttl)
-- a [set of matchable components](https://github.com/psychoinformatics-de/shacl-vue/tree/main/src/components).
+- a sample [SHACL shapes graph](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/public/dlschemas_shacl.ttl),
+- a sample [class hierarchy](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/public/dlschemas_owl.ttl),
+- a sample [data graph](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/public/dlschemas_data.ttl)
+- a [set of matchable components](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/src/components).
 
 These all underlie the demo `shacl-vue` instance. However, these can all be replaced or amended in order to customize your application instance.
 
@@ -89,7 +89,7 @@ Again, the output can be saved to a TTL file and put in the `public` directory, 
 
 ## Preparing the data graph
 
-When users complete forms, they often do so for data that exists in a wider context. Imagine a consortium of research groups, all collaborating on projects that belong to a specific, coherent theme. It is conceivable that participating researchers would collect data together, write academic papers together, share funding from the same sources, and more. If they then complete forms in order to describe their collected data, they might want to reference the same authors, the same funding sources, etc. No use in entering the same data twice. For this reason, it is useful to make existing data using existing namespaces available to the `shacl-vue` instance. This can be done by providing a file with RDF data, such as the demo example at: https://github.com/psychoinformatics-de/shacl-vue/blob/main/public/dlschemas_data.ttl.
+When users complete forms, they often do so for data that exists in a wider context. Imagine a consortium of research groups, all collaborating on projects that belong to a specific, coherent theme. It is conceivable that participating researchers would collect data together, write academic papers together, share funding from the same sources, and more. If they then complete forms in order to describe their collected data, they might want to reference the same authors, the same funding sources, etc. No use in entering the same data twice. For this reason, it is useful to make existing data using existing namespaces available to the `shacl-vue` instance. This can be done by providing a file with RDF data, such as the demo example at: https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/public/dlschemas_data.ttl.
 
 ## Adding custom components
 

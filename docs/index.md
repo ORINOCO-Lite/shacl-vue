@@ -17,7 +17,7 @@ hero:
       link: /get-started
     - theme: alt
       text: Source
-      link: https://github.com/psychoinformatics-de/shacl-vue
+      link: https://hub.psychoinformatics.de/datalink/shacl-vue
 
 ---
 

@@ -6,6 +6,7 @@
 import { isObject, snakeToCamel } from '@/modules/utils';
 import { ref, onMounted, reactive } from 'vue';
 import { mergeWith } from 'lodash-es'
+import { parse as parseYAML } from 'yaml';
 const basePath = import.meta.env.BASE_URL || '/';
 
 const mainVarsToLoad = {
@@ -65,8 +66,8 @@ const mainVarsToLoad = {
     id_autogenerate_override: false,
     prefixes: {},
     class_icons: {},
-    documentation_url: 'https://psychoinformatics-de.github.io/shacl-vue/docs/',
-    source_code_url: 'https://github.com/psychoinformatics-de/shacl-vue',
+    documentation_url: 'https://shacl-vue.psychoinformatics.de/',
+    source_code_url: 'https://hub.psychoinformatics.de/datalink/shacl-vue/src/commit/',
     app_theme: {
         link_color: '#41b883',
         hover_color: '#1565C0',
@@ -111,18 +112,43 @@ function mergeCustomizer(objValue, srcValue) {
     return [...new Set([...objValue, ...srcValue])]
 }
 
-export function useConfig(url) {
-    const defaultURL = `${basePath}config.json`;
-    var configURL;
-    if (url) {
-        if (url.indexOf('http')) {
-            configURL = url;
-        } else {
-            configURL = `${basePath}${url}`;
-        }
-    } else {
-        configURL = defaultURL;
+function getFileExtension(url) {
+    return url.split('.').pop().toLowerCase()
+}
+
+async function parseConfigResponse(response, url) {
+    const ext = getFileExtension(url)
+    const text = await response.text()
+    if (ext === 'yml' || ext === 'yaml') {
+        return parseYAML(text)
     }
+    return JSON.parse(text)
+}
+
+export function useConfig(url) {
+    console.log(`URL passed to useConfig: ${url}`)
+    const defaultConfigCandidates = [
+        `${basePath}config.yaml`,
+        `${basePath}config.yml`,
+        `${basePath}config.json`,
+    ];
+    let configURL = null;
+    async function resolveConfigURL() {
+        if (url) {
+            return url.indexOf('http') === 0 ? url : `${basePath}${url}`
+        }
+        for (const candidate of defaultConfigCandidates) {
+            try {
+                const res = await fetch(candidate, { method: 'HEAD' })
+                const contentType = res.headers.get('content-type') || ''
+                if (res.ok && !contentType.includes('text/html')) {
+                    return candidate
+                }
+            } catch (_) {}
+        }
+        return null
+    }
+    
     const config = ref(null);
     const configFetched = ref(false);
     const configError = ref(false);
@@ -133,6 +159,13 @@ export function useConfig(url) {
 
     onMounted(async () => {
         try {
+            configURL = await resolveConfigURL()
+            if (!configURL) {
+                configError.value = true
+                throw new Error('No config file found (config.yaml/yml/json)')
+            } else {
+                console.log(`Config file found at: ${configURL}`)
+            }
             const response = await fetch(configURL, { cache: 'no-cache' });
             if (!response.ok) {
                 configError.value = true;
@@ -140,7 +173,12 @@ export function useConfig(url) {
                     `Error fetching config file: ${response.statusText}`
                 );
             }
-            let mainConfig = await response.json();
+            let mainConfig = await parseConfigResponse(response, configURL);
+            if (!mainConfig || typeof mainConfig !== 'object') {
+                throw new Error('Config file is not valid JSON/YAML')
+            }
+            console.log("mainConfig:")
+            console.log(mainConfig)
             let externalConfig = {};
             if (mainConfig.external_config_url) {
                 let externalConfigLoaded = await loadContent(mainConfig.external_config_url, 'json')
@@ -170,7 +208,12 @@ export function useConfig(url) {
             if (format == 'text') {
                 return await response.text();
             } else {
-                return await response.json();
+                const ext = getFileExtension(url)
+                const text = await response.text()
+                if (ext === 'yml' || ext === 'yaml') {
+                    return parseYAML(text)
+                }
+                return JSON.parse(text)
             }
         } catch (error) {
             console.error('Error fetching content:', error);

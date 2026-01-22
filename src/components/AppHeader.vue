@@ -342,7 +342,7 @@ const { mobile } = useDisplay()
 const branch = __BRANCH__;
 const commit_short = __COMMIT_HASH_SHORT__;
 const commit = __COMMIT_HASH__;
-const link = `https://github.com/psychoinformatics-de/shacl-vue/tree/${commit}`;
+const link = `https://hub.psychoinformatics.de/datalink/shacl-vue/src/commit/${commit}`;
 
 const props = defineProps({
     logo: String,
