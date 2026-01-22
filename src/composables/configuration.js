@@ -66,8 +66,8 @@ const mainVarsToLoad = {
     id_autogenerate_override: false,
     prefixes: {},
     class_icons: {},
-    documentation_url: 'https://psychoinformatics-de.github.io/shacl-vue/docs/',
-    source_code_url: 'https://github.com/psychoinformatics-de/shacl-vue',
+    documentation_url: 'https://shacl-vue.psychoinformatics.de/',
+    source_code_url: 'https://hub.psychoinformatics.de/datalink/shacl-vue/src/commit/',
     app_theme: {
         link_color: '#41b883',
         hover_color: '#1565C0',
