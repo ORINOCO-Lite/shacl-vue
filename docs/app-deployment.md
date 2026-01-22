@@ -13,7 +13,7 @@ The sections below describe the suggested processes involved in:
 The static files for a `shacl-vue` deployment, such as the one at https://penguins.edu.datalad.org/ui/, can be built from a separate git repository (for the penguin example, this repository is at: https://hub.datalad.org/edu/penguins.edu.datalad.org-ui) that contains the following:
 
 1. Input files to the `shacl-vue` build process:
-   - required configuration file (for the penguins example, see [`config.js`](https://hub.datalad.org/edu/penguins.edu.datalad.org-ui/src/branch/main/config.json))
+   - required configuration file (for the penguins example, see [`config.json`](https://hub.datalad.org/edu/penguins.edu.datalad.org-ui/src/branch/main/config.json))
    - optional assets such as a logo or front page HTML file
 2. `shacl-vue` as a git submodule
 3. A makefile (e.g. [this](https://hub.datalad.org/edu/penguins.edu.datalad.org-ui/src/branch/main/Makefile)) containing the commands necessary for setting up the build environment.
@@ -22,9 +22,11 @@ Extra details are provided per repository component:
 
 ### Input files
 
-The `config.js` file is required and contains all configuration options to customize the `shacl-vue` deployment. These options are described comprehensively in the [Application configuration section](./app-configuration). Some noteworthy options include:
+The `config.json` file is required and contains all configuration options to customize the `shacl-vue` deployment. These options are described comprehensively in the [Application configuration section](./app-configuration). Some noteworthy options include:
 - `shapes_url` specifies the URL of the SHACL sources that drive the actual UI
 - `service_base_url` provides the base URLs and read/write type of the `dumpthings` service endpoints integrated with the specific `shacl-vue` deployment
+
+A configuration file can also be supplied in YAML format (with extension `.yaml` or `.yml`).
 
 ### `shacl-vue`
 
@@ -93,4 +95,4 @@ Publishing any of these packages to `npm` requires:
 
 _Note that 2FA might be involved in the authentication step_
 
-If the published version of either `shacl-tulip` or `flatson-js` is changed, the dependency in `shacl-vue` also needs to be updated (e.g. [here](https://github.com/psychoinformatics-de/shacl-vue/blob/971c949e6c1a095b4ebfda67ac5459438ed3950c/package.json#L60)), which in turn will require a new commit to the `shacl-vue` repository and an updated version published to `npm`. This will in turn require projects using `shacl-vue` to pin the latest version, either by updating the submodule described in the git-repository-based process above or by accessing the latest `shacl-vue` package version from `npm`.
+If the published version of either `shacl-tulip` or `flatson-js` is changed, the dependency in `shacl-vue` also needs to be updated (e.g. [here](https://hub.psychoinformatics.de/datalink/shacl-vue/src/commit/6f1651320aa22667bfff808b84bf2f3754d8853f/package.json#L60)), which in turn will require a new commit to the `shacl-vue` repository and an updated version published to `npm`. This will in turn require projects using `shacl-vue` to pin the latest version, either by updating the submodule described in the git-repository-based process above or by accessing the latest `shacl-vue` package version from `npm`.

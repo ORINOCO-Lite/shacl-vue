@@ -83,7 +83,7 @@ datalad:Grant a sh:NodeShape ;
 
 ### `shacl-vue` configuration for editor selection
 
-The editor component in `shacl-vue` that allows file uploads is the [`InstancesUploadEditor`](https://github.com/psychoinformatics-de/shacl-vue/blob/main/src/components/InstancesUploadEditor.vue). Internally, it instantiates the [`GitAnnexUploader`](https://github.com/psychoinformatics-de/shacl-vue/blob/main/src/components/GitAnnexUploader.vue) component which does the actual work of uploading a user-provided file.
+The editor component in `shacl-vue` that allows file uploads is the [`InstancesUploadEditor`](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/src/components/InstancesUploadEditor.vue). Internally, it instantiates the [`GitAnnexUploader`](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/src/components/GitAnnexUploader.vue) component which does the actual work of uploading a user-provided file.
 
 To ensure that the `InstancesUploadEditor` gets rendered for the slot/field that we annotated in the schema, we can use the `editor_selection` config option, for example:
 

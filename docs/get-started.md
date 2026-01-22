@@ -40,7 +40,7 @@ npm install shacl-vue
 For the latest development version, first clone the repo locally and then install `shacl-vue`:
 
 ```
-git clone https://github.com/psychoinformatics-de/shacl-vue.git
+git clone https://hub.psychoinformatics.de/datalink/shacl-vue.git
 cd shacl-vue
 npm install .
 ```

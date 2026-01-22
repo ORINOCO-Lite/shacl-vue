@@ -14,7 +14,7 @@ Here we provide more information about how editor components are put together in
 `shacl-vue` is under continuous development and might change at any time. Abstracting out general functionality, especially related to base editor code, is likely to affect the descriptions below.
 :::
 
-Let's use the [HexEditor.vue](https://github.com/psychoinformatics-de/shacl-vue/blob/main/src/components/HexEditor.vue) code as an example to explain the component internals.
+Let's use the [HexEditor.vue](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/src/components/HexEditor.vue) code as an example to explain the component internals.
 
 ### The template
 
@@ -39,14 +39,14 @@ Let's use the [HexEditor.vue](https://github.com/psychoinformatics-de/shacl-vue/
 </template>
 ```
 
-The template part of the component defines the look, feel, and UI-related functionality of the component. As you can see, there is a [Vuetify `v-input`](https://vuetifyjs.com/en/components/inputs/#usage) component that wraps the component, which is used to provide a unified API for any custom editor. See [this commit](https://github.com/psychoinformatics-de/shacl-vue/commit/b918ebd467fc45edcf22036a4053064b2d10388a) for more details. All attributes of the `v-input` tag are **required to be reused as is** in any new custom component, except for the `style` attribute:
+The template part of the component defines the look, feel, and UI-related functionality of the component. As you can see, there is a [Vuetify `v-input`](https://vuetifyjs.com/en/components/inputs/#usage) component that wraps the component, which is used to provide a unified API for any custom editor. See [this commit](https://hub.psychoinformatics.de/datalink/shacl-vue/commit/b918ebd467fc45edcf22036a4053064b2d10388a) for more details. All attributes of the `v-input` tag are **required to be reused as is** in any new custom component, except for the `style` attribute:
 
 - `v-model="internalValue"` provides a two-way binding of the `v-input` to a required `internalValue`, which is automatically reflected in the global `formData` state. In other words, this is the actual value of the editor component as input by the user.
 - `:rules="rules"` binds the `rules` variable (further explained in the `setup` script section below) to the `rules` property of the `v-input` component, for validation purposes
-- `ref="fieldRef"` and `:id="inputId"` assigns a `ref` and `id`, respectively, to the `v-input` component, which allows any component to be referenced (possibly recursively) by its parent form, for validation purposes (see [this commit](https://github.com/psychoinformatics-de/shacl-vue/commit/aee824187942bee887ce87342f293580e5540d66)).
+- `ref="fieldRef"` and `:id="inputId"` assigns a `ref` and `id`, respectively, to the `v-input` component, which allows any component to be referenced (possibly recursively) by its parent form, for validation purposes (see [this commit](https://hub.psychoinformatics.de/datalink/shacl-vue/commit/aee824187942bee887ce87342f293580e5540d66)).
 - `hide-details="auto"` makes for a better UX regarding messaging from the `v-input` component.
 
-The custom nature of an editor component is established by adding any number of components inside the `v-input`. In the above example we have a single `v-text-field`, but this could also be multiple input components, such as the [`URIEditor`](https://github.com/psychoinformatics-de/shacl-vue/blob/main/src/components/URIEditor.vue#L10-L52) that is shipped with `shacl-vue`. The important part is to `v-model` each subcomponent with a unique field in the `subValues` object, e.g. `subValues.hex_text` above. These subvalues are used in a deterministic way when determining the `internalValue` of the wrapping `v-input` component.
+The custom nature of an editor component is established by adding any number of components inside the `v-input`. In the above example we have a single `v-text-field`, but this could also be multiple input components, such as the [`URIEditor`](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/src/components/URIEditor.vue#L10-L52) that is shipped with `shacl-vue`. The important part is to `v-model` each subcomponent with a unique field in the `subValues` object, e.g. `subValues.hex_text` above. These subvalues are used in a deterministic way when determining the `internalValue` of the wrapping `v-input` component.
 
 
 ### The `setup` script
@@ -108,7 +108,7 @@ Importantly, this is where general functionality from composables are imported a
 - `valueParser(value)` is the custom logic that the component should provide to determine the subvalues of possible subcomponents from `internalValue`
 - `valueCombiner(values)` is the custom logic that the component should provide to determine the `internalValue` from the subvalues of possible subcomponents
 
-The functions in the above example are simplistic, since they just mirror the single subvalue. But this logic could also be more complex, see for example the [functions associated with the `URIEditor` component](https://github.com/psychoinformatics-de/shacl-vue/blob/main/src/components/URIEditor.vue#L125-L174).
+The functions in the above example are simplistic, since they just mirror the single subvalue. But this logic could also be more complex, see for example the [functions associated with the `URIEditor` component](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/src/components/URIEditor.vue#L125-L180).
 
 
 ### The matching script
@@ -151,7 +151,7 @@ Custom components can be created as outlined above. The component filename needs
 
 ## Component matching
 
-The [`editors.js` module](https://github.com/psychoinformatics-de/shacl-vue/blob/main/src/modules/editors.js) provides the necessary code for grabbing the matching logic of all custom Vue components and making that available (via `Provide/Inject`) to the `PropertyShapeEditor` editor that dynamically matches the correct editor component to the `sh:PropertyShape`.
+The [`editors.js` module](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/src/modules/editors.js) provides the necessary code for grabbing the matching logic of all custom Vue components and making that available (via `Provide/Inject`) to the `PropertyShapeEditor` editor that dynamically matches the correct editor component to the `sh:PropertyShape`.
 
 In the `PropertyShapeEditor`, a computed property determines the correct match:
 

@@ -6,7 +6,12 @@ layout: doc
 
 Any unique instance of `shacl-vue` can be tailored to its specific use case and users through a custom configuration. This includes required instance inputs, such as the URLs to the input sources covered in the [Application Inputs section](./app-inputs), as well as various settings for theming, identifiers, UI behavior, and service API integration.
 
-Configuration is done via a `config.json` file, available at [`shacl-vue/public/config.json`](https://github.com/psychoinformatics-de/shacl-vue/blob/main/public/config.json)
+Configuration is done via a `config` file, which can be provided in JSON (`.json`) or YAML (`.yaml`/`.yml`) format, either in a default location or via a dedicated URL.
+
+- **default config URL**: If `shacl-vue` is deployed and run without any code modifications, it will assume a default config file location in the root of the served application, e.g. `https://my-shacl-vue-deployment/config.json`. This config file name should be `config` and should have any of the supported extensions. If duplicate config files are provided in multiple formats, priority is given in the order: `.yaml`, then `.yml`, then `.json`.
+- **explicit config URL**: The configuration file URL can also be provided explicitly to the `shacl-vue` deployment by updating `App.vue` to instantiate the main `ShaclVue` component with the `configUrl` prop.
+
+A template config file in YAML format is kept up to date with the latest config options, and is available at [`shacl-vue/public/config_template.yaml`](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/public/config_template.yaml)
 
 Current configuration options include:
 
@@ -34,7 +39,7 @@ Current configuration options include:
 - `source_code_url` is the URL of the source code repository for the specific `shacl-vue` instance
 - `footer_links` is an array of objects, where each object contains the `url` and display `text` for a link that should be included in the application footer
 
-The HTML page title of the main application is set in [`shacl-vue/src/components/ShaclVue.vue`](https://github.com/psychoinformatics-de/shacl-vue/blob/main/src/components/ShaclVue.vue) based on values in the configuration file (`config.json`). The app uses the following priority when setting the title:
+The HTML page title of the main application is set in [`shacl-vue/src/components/ShaclVue.vue`](https://hub.psychoinformatics.de/datalink/shacl-vue/src/branch/main/src/components/ShaclVue.vue) based on values in the configuration file (`config.json`). The app uses the following priority when setting the title:
 
 1. IF `page_title` is defined, use it;
 2. ELSE IF `app_name` is defined, use it;
@@ -157,6 +162,7 @@ The defaults for all input source URLs are the repository-local demo files.
 
 ```json
 {
+    "allow_copy_record_urls": true,
     "show_shapes_wo_id": true,
     "show_all_fields": true,
     "show_classes": [],
@@ -177,6 +183,7 @@ The defaults for all input source URLs are the repository-local demo files.
 }
 ```
 
+- `allow_copy_record_urls` is a boolean that, when `true`, will show a share icon button on a record that will allow the user to copy the persistent URL of the record for sharing purposes
 - `show_shapes_wo_id` shows data types (in the left-hand-side panel) for which the driving SHACL shapes do not have the `id_iri` property defined, when `true`
 - `show_all_fields` displays all properties in the form editor when a record is created/edited, when `true`. Properties in the form editor are displayed by default in order of reverse inheritance. For example, if the `Person` class is derived from the `Thing` class, the form editor for a `Person` would display the `Person`-properties in top, and the `Thing`-properties below that. Often, only the top-level properties are of immediate interest or importance to users and UX is improved by hiding other properties. The `show_all_fields` option, when `false`, would hide lower-level properties and display the top-level properties and required properties when a user opens the form editor to add/edit a record. In addition to the configuration option, the UI still allows the user to toggle between showing and hiding lower-level properties.
 - `show_classes`, `show_classes_with_prefix`, `hide_classes`, and `hide_classes_with_prefix` are options that together specify which classes to show and hide in the left-hand-side panel listing all data types (i.e. classes):
