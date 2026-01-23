@@ -1,6 +1,7 @@
 import { SHACL, RDFS, RDF, DLTHINGS, SKOS } from '../modules/namespaces';
 import { toCURIE, toIRI } from 'shacl-tulip';
 import { DataFactory, Writer } from 'n3';
+import { toRaw } from 'vue';
 const { namedNode, blankNode} = DataFactory;
 
 export function nameOrCURIE(shape, prefixes, readable = false) {
@@ -680,6 +681,46 @@ export function transformSearchFieldName(fieldName, format = 'curie', allPrefixe
             return fieldName;
         } else {
             return toIRI(fieldName, allPrefixes);
+        }
+    }
+}
+
+export function updateShapesDataset(configShapes, shapesDS, allPrefixes) {
+    for (const key of Object.keys(configShapes)) {
+        updateNodeShape(key, configShapes[key], shapesDS, allPrefixes)
+    }
+}
+
+export function updateNodeShape(newShapeIRI, newShapeObj, shapesDS, allPrefixes) {
+    const targetNodeShapeIRI = toIRI(newShapeIRI, allPrefixes)
+    const targetNodeShapeProperties = shapesDS.data.nodeShapes[targetNodeShapeIRI]['properties']
+    for (const key of Object.keys(newShapeObj)) {
+        const keyIRI = toIRI(key, allPrefixes)
+        const value = newShapeObj[key];
+        if (keyIRI == SHACL.property.value) {
+            // if the key is "sh:property", we have to find the correct propertyShape per property
+            for (const prop of Object.keys(value)) {
+                const pathIRI = toIRI(prop, allPrefixes)
+                const propVal = value[prop]
+                // console.log(`have to find property shape in array, where path `)
+                const targetPropertyShape = findObjectByKey(targetNodeShapeProperties, SHACL.path.value, pathIRI)
+                if (targetPropertyShape) {
+                    // update existing property shape with all new key-value pairs
+                    for (const propValKey of Object.keys(propVal)) {
+                        const propValKeyIRI = toIRI(propValKey, allPrefixes);
+                        targetPropertyShape[propValKeyIRI] = propVal[propValKey]
+                    }
+                } else {
+                    // create new property shape object, by copying
+                    const newPropShape = toRaw(propVal);
+                    // add path, because it is likely not specified from config (since it's not required)
+                    newPropShape[SHACL.path.value] = pathIRI;
+                    targetNodeShapeProperties.push(newPropShape)
+                }
+            }
+        } else {
+            // Assign value on the nodeShape key, as is (i.e. no validation of the value => could be problematic)
+            shapesDS.data.nodeShapes[targetNodeShapeIRI][keyIRI] = value;
         }
     }
 }
