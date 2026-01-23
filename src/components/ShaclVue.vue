@@ -493,6 +493,7 @@ import {
     getContent,
     includeClass,
     transformSearchFieldName,
+    updateShapesDataset,
 } from '../modules/utils';
 import { toCURIE, toIRI } from 'shacl-tulip';
 import editorMatchers from '@/modules/editors';
@@ -784,6 +785,9 @@ watch(
             }
             setViewFromQuery();
             page_ready.value = true;
+            if (configVarsMain.updateShapes && Object.keys(configVarsMain.updateShapes).length > 0) {
+                updateShapesDataset(configVarsMain.updateShapes, shapesDS, allPrefixes)
+            }
             // Get object with nodeshape uris as keys and their superclass arrays as values
             // This is necessary for ordering the properties according to their originating class, for display
             for (var uri of shapesDS.data.nodeShapeIRIs) {

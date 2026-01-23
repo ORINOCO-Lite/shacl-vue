@@ -129,9 +129,33 @@ In the above example, the HTML file is placed in the root distribution directory
 - `class_url` is the URL to fetch the class hierarchy from
 - `use_default_shapes`, `use_default_data`, and `use_default_classes` specify using default demo files as fallback config URLs, when `true`
 
-All application input source URLs should either be unique and absolute online URIs, or a path relative to `shacl-vue/public` in the case of a file local to the repository. These URLs should return documents in TTL format.
+All application input source URLs should either be unique and absolute online URIs, or a path relative to `shacl-vue/public` in the case of a file local to the repository. These URLs should return documents in TTL format. The defaults for all input source URLs are the repository-local demo files.
 
-The defaults for all input source URLs are the repository-local demo files.
+- `update_shapes` provides a general config feature to update/amend the node- and property shapes that drive the UI of a `shacl-vue` deployment, thereby allowing changes to UI behaviour without having to update the model from which the SHACL shapes are created
+
+The `update_shapes` option takes an object as value, with each key being a node shape IRI, which in turn has an object as value. Per node shape, the keys can be any valid SHACL keys of a node shape, e.g. `sh:description` or `sh:name`. A special key is `sh:property`, which has an object as value, with each key in turn being the `sh:path` of an associated property shape. Keys of the associated value (i.e. property shape) can be any valid SHACL keys of a property shape, e.g. `sh:datatype` or `sh:maxCount`, as well as any further IRIs used drive the UI, e.g. `dash:singleLine`. Here is an example:
+
+```json
+
+"update_shapes": {
+    "xyzrse:XYZPerson":{
+        "sh:description": "An XYZPerson is a human being",
+        "sh:property":{
+            "dlprovmx:delegated_by": {
+                "sh:order": 0.001
+            },
+            "dlsocialmx:honorific_name_prefix": {
+                "sh:description": "Honorable member"
+            },
+            "xyzrse:depiction":{
+                "shaclvue:gitAnnexUpload": false
+            }
+        }
+    }
+}
+```
+
+If this option is populated in the config file of a deployment, `shacl-vue` will use it to update its own internal representation of node- and property shapes after they have been loaded from the `shapes_url` at application startup. Existing key/values will be overwritten, new key/values will be added. All IRIs may also be specified in CURIE format.
 
 ## Identifier settings
 
