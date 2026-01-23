@@ -22,12 +22,13 @@
 # --------------------------
 # Application inputs sources
 # --------------------------
-# class_url
-# data_url
-# shapes_url
-# use_default_classes
-# use_default_data
-# use_default_shapes
+# class_url:
+# data_url:
+# shapes_url:
+# update_shapes:
+# use_default_classes:
+# use_default_data:
+# use_default_shapes:
 
 # -------------------
 # Identifier settings
