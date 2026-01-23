@@ -785,13 +785,9 @@ watch(
             }
             setViewFromQuery();
             page_ready.value = true;
-            console.log("SHAPS DS:")
-            console.log(toRaw(shapesDS.data.nodeShapes))
             if (configVarsMain.updateShapes && Object.keys(configVarsMain.updateShapes).length > 0) {
                 updateShapesDataset(configVarsMain.updateShapes, shapesDS, allPrefixes)
             }
-            console.log("SHAPS DS UPDATED:")
-            console.log(toRaw(shapesDS.data.nodeShapes))
             // Get object with nodeshape uris as keys and their superclass arrays as values
             // This is necessary for ordering the properties according to their originating class, for display
             for (var uri of shapesDS.data.nodeShapeIRIs) {
