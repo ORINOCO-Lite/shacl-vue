@@ -66,9 +66,14 @@ export function downloadTSV(data, filename) {
     }
 }
 
-export function addCodeTagsToText(text) {
-    if (text) return text.replace(/`([^`]+)`/g, '<code class="code-style">$1</code>');
-    return text;
+export function addCodeTagsToText(text, prepend, append) {
+    let result = text
+    if (text) {
+        result = text.replace(/`([^`]+)`/g, '<code class="code-style">$1</code>');
+        if (prepend) result = prepend + result;
+        if (append) result = result + append
+    } 
+    return result;
 }
 
 export function findObjectByKey(array, key, value) {
@@ -723,4 +728,16 @@ export function updateNodeShape(newShapeIRI, newShapeObj, shapesDS, allPrefixes)
             shapesDS.data.nodeShapes[targetNodeShapeIRI][keyIRI] = value;
         }
     }
+}
+
+export function getNotes(shape) {
+    let notes = shape?.[SKOS.note.value];
+    if (notes) {
+        if (!Array.isArray(notes)) {
+            return [notes]
+        } else {
+            return notes
+        }
+    }
+    return null
 }
