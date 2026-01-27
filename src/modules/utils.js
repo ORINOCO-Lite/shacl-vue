@@ -741,3 +741,15 @@ export function updateNodeShape(newShapeIRI, newShapeObj, shapesDS, allPrefixes)
         }
     }
 }
+
+export function getNotes(shape) {
+    let notes = shape?.[SKOS.note.value];
+    if (notes) {
+        if (!Array.isArray(notes)) {
+            return [notes]
+        } else {
+            return notes
+        }
+    }
+    return null
+}
