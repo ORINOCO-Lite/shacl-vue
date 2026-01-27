@@ -19,6 +19,7 @@
 <script setup>
 import { onBeforeMount, ref, inject, onMounted } from 'vue';
 import { toIRI, toCURIE } from 'shacl-tulip';
+import { includeClass } from '@/modules/utils';
 const props = defineProps({
     textVal: String,
     prefLabel: String,
@@ -75,7 +76,12 @@ onBeforeMount(() => {
     if (props.quad !== undefined) {
         currentClassIRI.value = props.quad.object.value;
         // name of record should be a link that navigates to internal record
-        isLink.value = true;
+        // but only if the class is not explicitly excluded via configuration
+        if (includeClass(currentClassIRI.value)) {
+            isLink.value = true;
+        } else {
+            isLink.value = false;
+        }
     }
     // If the quad does not exist
     else {
