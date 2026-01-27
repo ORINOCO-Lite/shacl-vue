@@ -713,11 +713,23 @@ export function updateNodeShape(newShapeIRI, newShapeObj, shapesDS, allPrefixes)
                     // update existing property shape with all new key-value pairs
                     for (const propValKey of Object.keys(propVal)) {
                         const propValKeyIRI = toIRI(propValKey, allPrefixes);
-                        targetPropertyShape[propValKeyIRI] = propVal[propValKey]
+                        if (typeof propVal[propValKey] == "boolean") {
+                            // variable is a boolean, need to write as string to prevent value errors down the line
+                            // this is because loading the boolean variable from shacl into javascript also casts it as a string
+                            targetPropertyShape[propValKeyIRI] = `${propVal[propValKey]}`
+                        } else {
+                            targetPropertyShape[propValKeyIRI] = propVal[propValKey]
+                        }
                     }
                 } else {
                     // create new property shape object, by copying
                     const newPropShape = toRaw(propVal);
+                    for (const key of Object.keys(newPropShape)) {
+                        // cast boolean as string
+                        if (typeof newPropShape[key] == "boolean") {
+                            newPropShape[key] = `${newPropShape[key]}`
+                        }
+                    }
                     // add path, because it is likely not specified from config (since it's not required)
                     newPropShape[SHACL.path.value] = pathIRI;
                     targetNodeShapeProperties.push(newPropShape)
@@ -728,16 +740,4 @@ export function updateNodeShape(newShapeIRI, newShapeObj, shapesDS, allPrefixes)
             shapesDS.data.nodeShapes[targetNodeShapeIRI][keyIRI] = value;
         }
     }
-}
-
-export function getNotes(shape) {
-    let notes = shape?.[SKOS.note.value];
-    if (notes) {
-        if (!Array.isArray(notes)) {
-            return [notes]
-        } else {
-            return notes
-        }
-    }
-    return null
 }
