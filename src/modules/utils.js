@@ -66,9 +66,14 @@ export function downloadTSV(data, filename) {
     }
 }
 
-export function addCodeTagsToText(text) {
-    if (text) return text.replace(/`([^`]+)`/g, '<code class="code-style">$1</code>');
-    return text;
+export function addCodeTagsToText(text, prepend, append) {
+    let result = text
+    if (text) {
+        result = text.replace(/`([^`]+)`/g, '<code class="code-style">$1</code>');
+        if (prepend) result = prepend + result;
+        if (append) result = result + append
+    } 
+    return result;
 }
 
 export function findObjectByKey(array, key, value) {
@@ -708,11 +713,23 @@ export function updateNodeShape(newShapeIRI, newShapeObj, shapesDS, allPrefixes)
                     // update existing property shape with all new key-value pairs
                     for (const propValKey of Object.keys(propVal)) {
                         const propValKeyIRI = toIRI(propValKey, allPrefixes);
-                        targetPropertyShape[propValKeyIRI] = propVal[propValKey]
+                        if (typeof propVal[propValKey] == "boolean") {
+                            // variable is a boolean, need to write as string to prevent value errors down the line
+                            // this is because loading the boolean variable from shacl into javascript also casts it as a string
+                            targetPropertyShape[propValKeyIRI] = `${propVal[propValKey]}`
+                        } else {
+                            targetPropertyShape[propValKeyIRI] = propVal[propValKey]
+                        }
                     }
                 } else {
                     // create new property shape object, by copying
                     const newPropShape = toRaw(propVal);
+                    for (const key of Object.keys(newPropShape)) {
+                        // cast boolean as string
+                        if (typeof newPropShape[key] == "boolean") {
+                            newPropShape[key] = `${newPropShape[key]}`
+                        }
+                    }
                     // add path, because it is likely not specified from config (since it's not required)
                     newPropShape[SHACL.path.value] = pathIRI;
                     targetNodeShapeProperties.push(newPropShape)

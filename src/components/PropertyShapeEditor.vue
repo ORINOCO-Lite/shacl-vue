@@ -185,13 +185,13 @@
                 >
                 </v-btn>
             </span>
-            <p
-                v-html="
-                    addCodeTagsToText(
-                        localPropertyShape[SHACL.description.value]
-                    )
-                "
-            ></p>
+            <p v-html="addCodeTagsToText(localPropertyShape[SHACL.description.value])"></p>
+            <span v-if="fieldNotes">
+                <span v-for="(note, i) in fieldNotes">
+                    <em v-if="i == 0"><p v-html="addCodeTagsToText(note, '<br/>Notes: <br/>* ')"></p></em>
+                    <em v-else><p v-html="addCodeTagsToText(note, '* ')"></p></em>
+                </span>
+            </span>
         </template>
     </v-tooltip>
 </template>
@@ -210,7 +210,7 @@ import {
 } from 'vue';
 import { SHACL, DLCO } from '../modules/namespaces';
 import { useRules } from '../composables/rules';
-import { nameOrCURIE, addCodeTagsToText, isObject } from '../modules/utils';
+import { nameOrCURIE, addCodeTagsToText, isObject, getNotes } from '../modules/utils';
 import { toCURIE, toIRI } from 'shacl-tulip';
 import { useCompConfig } from '@/composables/useCompConfig';
 
@@ -251,6 +251,7 @@ const defaultStep = componentConfig?.recordNumberStepSize;
 const currentCount = ref(defaultStep)
 const showIDoverride = ref(false)
 const idOverrideSwitch = ref(false)
+const fieldNotes = ref([]);
 
 // ----------------- //
 // Lifecycle methods //
@@ -290,6 +291,8 @@ onBeforeMount(() => {
             configMatchedComponent.value = editorMatchers[cname].component
         }
     }
+
+    fieldNotes.value = getNotes(localPropertyShape.value);
 });
 
 onMounted(() => {

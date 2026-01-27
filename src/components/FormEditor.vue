@@ -93,6 +93,13 @@
             >
                 <br />
                 <p v-html="formattedDescription" class="quote-description"></p>
+                <div style="margin-top: 0.3em;"></div>
+                <span v-if="fieldNotes">
+                    <span v-for="(note, i) in fieldNotes">
+                        <em v-if="i == 0"><p v-html="addCodeTagsToText(note, 'Notes: <br/>* ')" class="quote-description"></p></em>
+                        <em v-else><p v-html="addCodeTagsToText(note, '* ')" class="quote-description"></p></em>
+                    </span>
+                </span>
                 <br />
                 <div class="top-1">
                     <v-switch
@@ -143,6 +150,7 @@ import {
     addCodeTagsToText,
     getDisplayName,
     findObjectByKey,
+    getNotes,
 } from '../modules/utils';
 import { toCURIE } from 'shacl-tulip';
 import { useDisplay } from 'vuetify'
@@ -209,6 +217,7 @@ function registerHandler(handle, fn) {
 provide('registerHandler', registerHandler);
 const show_all_fields = ref(false);
 provide('show_all_fields', show_all_fields);
+const fieldNotes = ref([]);
 
 // ----------------- //
 // Lifecycle methods //
@@ -231,6 +240,7 @@ onBeforeMount(() => {
             show_all_fields = true;
         }
     }
+    fieldNotes.value = getNotes(shape_obj);
 });
 
 onBeforeUnmount(() => {
