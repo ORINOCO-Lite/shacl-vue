@@ -103,6 +103,15 @@
                     ></v-btn>
                 </template>
             </v-tooltip>
+            <v-tooltip text="Toggle theme" location="bottom">
+                <template #activator="{ props }">
+                    <v-btn
+                        :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+                        @click="toggleTheme"
+                        v-bind="props"
+                    ></v-btn>
+                </template>
+            </v-tooltip>
         </template>
     </v-app-bar>
 
@@ -158,7 +167,7 @@
 
     <v-dialog v-model="settingsDialog" width="80vw" max-width="80vw">
         <v-card class="settings-card">
-            <v-toolbar :color="configVarsMain.appTheme.settings_color" title="Settings and info"></v-toolbar>
+            <v-toolbar :color="isDark ? '' : configVarsMain.appTheme.settings_color" title="Settings and info"></v-toolbar>
             
             <v-card-text class="settings-body" :class="{ 'settings-body--mobile': mobile }">
                 <v-tabs
@@ -338,6 +347,8 @@
 import { inject, onBeforeMount, ref, watch, computed} from 'vue';
 import { useToken } from '@/composables/tokens';
 import { useDisplay } from 'vuetify'
+import { useAppTheme } from '@/composables/useAppTheme'
+const { isDark, toggleTheme } = useAppTheme()
 const { mobile } = useDisplay()
 const branch = __BRANCH__;
 const commit_short = __COMMIT_HASH_SHORT__;
@@ -540,7 +551,7 @@ async function save() {
 
 <style scoped>
 .header-button {
-    color: #1d1d1d;
+    color: rgb(var(--v-theme-on-surface));
 }
 .header-button:hover {
     text-decoration: none;

@@ -468,6 +468,5 @@ function goToError(e) {
 .quote-description {
     border-left: 3px solid rgb(154, 153, 153);
     padding-left: 1em;
-    color: rgb(97, 97, 97);
 }
 </style>

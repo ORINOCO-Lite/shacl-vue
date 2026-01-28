@@ -434,8 +434,8 @@ export const matchingLogic = (shape, shapesDS, id_iri, prefixes) => {
     min-width: auto !important;
     width: auto !important;
     height: auto !important;
-    background-color: white !important;
-    color: black !important;
+    background-color: rgb(var(--v-theme-background)) !important;
+    color: rgb(var(--v-theme-on-surface)) !important;
     border: 1px solid #b4b4b4;
 }
 </style>

@@ -513,8 +513,7 @@ function isExtraIndex(idx) {
   padding: 0.5em 0.5em;
 }
 .main-row:hover {
-  background-color: #f5f5f5;
-  cursor: pointer; /* optional */
+  cursor: pointer;
 }
 .main-row:hover .row-label {
   text-decoration: underline;
@@ -524,13 +523,6 @@ function isExtraIndex(idx) {
     text-decoration: underline !important;
   }
 }
-/* .main-row:hover {
-    border: 2px solid black;
-    background-color: #f5f5f5;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
-} */
 .disabled-row {
     opacity: 0.5;
     /* color: grey; */

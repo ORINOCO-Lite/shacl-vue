@@ -1,11 +1,10 @@
 <template>
     <v-card
         variant="text"
-        class="d-inline-block"
-        style="margin-bottom: 0; padding-bottom: 0; background-color: white"
+        class="d-inline-block blank-node-viewer"
         no-gutters
     >
-        <v-card-text style="padding: 0.5em; background-color: white" :class="mobile ? 'text-caption' : ''">
+        <v-card-text style="padding: 0.5em;" :class="mobile ? 'text-caption' : ''">
             <v-row align="center" class="d-inline-flex">
                 <v-col style="flex: 0 0 30px; max-width: 30px;">
                     <v-icon class="mr-1">
@@ -191,3 +190,11 @@ function addRecordProperty(quad) {
     record.triples[termType][quad.predicate.value].push(quad.object);
 }
 </script>
+
+<style>
+.blank-node-viewer {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    background-color: rgb(var(--v-theme-background));
+}
+</style>
