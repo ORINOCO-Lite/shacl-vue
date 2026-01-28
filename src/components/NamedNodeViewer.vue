@@ -77,7 +77,7 @@ onBeforeMount(() => {
         currentClassIRI.value = props.quad.object.value;
         // name of record should be a link that navigates to internal record
         // but only if the class is not explicitly excluded via configuration
-        if (includeClass(currentClassIRI.value)) {
+        if (includeClass(currentClassIRI.value, configVarsMain, allPrefixes)) {
             isLink.value = true;
         } else {
             isLink.value = false;
