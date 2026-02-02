@@ -690,9 +690,28 @@ export function transformSearchFieldName(fieldName, format = 'curie', allPrefixe
     }
 }
 
-export function updateShapesDataset(configShapes, shapesDS, allPrefixes) {
+export function updateShapesDataset(configVarsMain, shapesDS, allPrefixes) {
+    const configShapes = configVarsMain.updateShapes;
+    // First we set defaults:
+    updateAllShapes(configVarsMain, shapesDS, allPrefixes)
+    // Then we update dedicated shapes:
     for (const key of Object.keys(configShapes)) {
         updateNodeShape(key, configShapes[key], shapesDS, allPrefixes)
+    }
+}
+
+function updatePropertyShape(targetPropertyShape, updateObject, allPrefixes) {
+    // update existing property shape with all new key-value pairs
+    for (const key of Object.keys(updateObject)) {
+        const val = updateObject[key]
+        const keyIRI = toIRI(key, allPrefixes);
+        if (typeof val == "boolean") {
+            // variable is a boolean, need to write as string to prevent value errors down the line
+            // this is because loading the boolean variable from shacl into javascript also casts it as a string
+            targetPropertyShape[keyIRI] = `${val}`
+        } else {
+            targetPropertyShape[keyIRI] = val
+        }
     }
 }
 
@@ -711,16 +730,7 @@ export function updateNodeShape(newShapeIRI, newShapeObj, shapesDS, allPrefixes)
                 const targetPropertyShape = findObjectByKey(targetNodeShapeProperties, SHACL.path.value, pathIRI)
                 if (targetPropertyShape) {
                     // update existing property shape with all new key-value pairs
-                    for (const propValKey of Object.keys(propVal)) {
-                        const propValKeyIRI = toIRI(propValKey, allPrefixes);
-                        if (typeof propVal[propValKey] == "boolean") {
-                            // variable is a boolean, need to write as string to prevent value errors down the line
-                            // this is because loading the boolean variable from shacl into javascript also casts it as a string
-                            targetPropertyShape[propValKeyIRI] = `${propVal[propValKey]}`
-                        } else {
-                            targetPropertyShape[propValKeyIRI] = propVal[propValKey]
-                        }
-                    }
+                    updatePropertyShape(targetPropertyShape, propVal, allPrefixes)
                 } else {
                     // create new property shape object, by copying
                     const newPropShape = toRaw(propVal);
@@ -738,6 +748,44 @@ export function updateNodeShape(newShapeIRI, newShapeObj, shapesDS, allPrefixes)
         } else {
             // Assign value on the nodeShape key, as is (i.e. no validation of the value => could be problematic)
             shapesDS.data.nodeShapes[targetNodeShapeIRI][keyIRI] = value;
+        }
+    }
+}
+
+function updateAllShapes(configVarsMain, shapesDS, allPrefixes) {
+    const configShapesDefault = configVarsMain.updateShapesDefault;
+    // configShapesDefault example (yaml):
+    // update_shapes_default:
+    //     _all_node_shapes:
+    //     _all_property_shapes:
+    //         dlthings:title:
+    //             sh:order: 1
+    // Here we see if the _all_property_shapes object has keys
+    // If true: we need to go through all node shapes in the shapes dataset,
+    // and for each of them find the relevant property shape and update it
+    if (!(configShapesDefault['_all_property_shapes'] && Object.keys(configShapesDefault['_all_property_shapes']).length > 0)) {
+        return;
+    }
+
+    for (const targetNodeShapeIRI of Object.keys(toRaw(shapesDS.data.nodeShapes))) {
+        if (!includeClass(targetNodeShapeIRI, configVarsMain, allPrefixes)) {
+            // Here we skip any classes that should not be shown in the UI.
+            // This is a proxy for: only add defaults to inherited classes, not parents
+            // because having the same annotations in parent and children classes messes
+            // with the property ordering algorithm.
+            continue;
+        }
+        const targetNodeShapeProperties = shapesDS.data.nodeShapes[targetNodeShapeIRI]['properties']
+        for (const slot of Object.keys(configShapesDefault['_all_property_shapes'])) {
+            const pathIRI = toIRI(slot, allPrefixes)
+            const defaultValues = configShapesDefault['_all_property_shapes'][slot]
+            const targetPropertyShape = findObjectByKey(targetNodeShapeProperties, SHACL.path.value, pathIRI)
+            if (targetPropertyShape) {
+                // update existing property shape with all new key-value pairs
+                updatePropertyShape(targetPropertyShape, defaultValues, allPrefixes)
+            }
+            // If the associated property shape is not in the node shape, we should not add it here
+            // because we should not create new fields, just set default value for existing fields
         }
     }
 }

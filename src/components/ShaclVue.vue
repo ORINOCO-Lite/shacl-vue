@@ -785,8 +785,11 @@ watch(
             }
             setViewFromQuery();
             page_ready.value = true;
-            if (configVarsMain.updateShapes && Object.keys(configVarsMain.updateShapes).length > 0) {
-                updateShapesDataset(configVarsMain.updateShapes, shapesDS, allPrefixes)
+            if (
+                configVarsMain.updateShapes && Object.keys(configVarsMain.updateShapes).length > 0 ||
+                configVarsMain.updateShapesDefault && Object.keys(configVarsMain.updateShapesDefault).length > 0
+            ) {
+                updateShapesDataset(configVarsMain, shapesDS, allPrefixes)
             }
             // Get object with nodeshape uris as keys and their superclass arrays as values
             // This is necessary for ordering the properties according to their originating class, for display

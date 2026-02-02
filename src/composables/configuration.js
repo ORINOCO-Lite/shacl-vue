@@ -92,6 +92,7 @@ const mainVarsToLoad = {
     footer_links: [],
     gitannex_p2phttp_config: {},
     update_shapes: {},
+    update_shapes_default: {},
 };
 
 function mergeCustomizer(objValue, srcValue) {
