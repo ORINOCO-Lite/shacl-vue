@@ -55,7 +55,7 @@
 <script setup>
 import { ref, onBeforeUnmount, onMounted, inject, toRaw } from 'vue';
 import { SHACL, RDF, RDFS, DLCO } from '../modules/namespaces';
-import { getDisplayName, objectsEqual } from '../modules/utils';
+import { getDisplayName, objectsEqual, nameOrCURIE} from '../modules/utils';
 
 // ----- //
 // Props //
@@ -251,17 +251,18 @@ function orderProperties(propertyShapes) {
 function _sortPropertiesByOrder(properties, propertyShapes) {
     // Sort array of properties based on the sh:order value in propertyShapes
     return properties.slice().sort((a, b) => {
-        const orderA = parseInt(
-            propertyShapes[a]?.['http://www.w3.org/ns/shacl#order'] ??
-                Infinity,
-            10
-        );
-        const orderB = parseInt(
-            propertyShapes[b]?.['http://www.w3.org/ns/shacl#order'] ??
-                Infinity,
-            10
-        );
-        return orderA - orderB;
+        const rawOrderA = propertyShapes[a]?.['http://www.w3.org/ns/shacl#order'];
+        const rawOrderB = propertyShapes[b]?.['http://www.w3.org/ns/shacl#order'];
+        const orderA = rawOrderA !== undefined ? Number(rawOrderA) : Infinity;
+        const orderB = rawOrderB !== undefined ? Number(rawOrderB) : Infinity;
+        // sh:order
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+        // nameOrCURIE fallback
+        const nameA = nameOrCURIE(propertyShapes[a], shapesDS.data.prefixes, true);
+        const nameB = nameOrCURIE(propertyShapes[b], shapesDS.data.prefixes, true);
+        return nameA.localeCompare(nameB);
     });
 }
 
