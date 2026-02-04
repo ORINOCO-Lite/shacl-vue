@@ -801,3 +801,17 @@ export function getNotes(shape) {
     }
     return null
 }
+
+const XSD_FLAGS_PATTERN = /^\(\?([imsx]+)\)\^/;
+export function getJsRegex(xsdPattern) {
+    let jsFlags = '';
+    let jsPattern = xsdPattern;
+    // Check of the pattern string includes flags, e.g.:`(?i)^`
+    const m = xsdPattern.match(XSD_FLAGS_PATTERN);
+    if (m) {
+        // Only keep JS-compatible flags: i, m, s
+        jsFlags = [...m[1]].filter(f => 'ims'.includes(f)).join('');
+        jsPattern = xsdPattern.replace(/^\(\?[imsx]+\)/, '');
+    }
+    return {jsFlags, jsPattern};
+}
