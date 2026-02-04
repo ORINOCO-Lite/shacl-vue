@@ -1,13 +1,34 @@
 <template>
     <span v-if="ready">
+        <span v-if="showWizards">
+            <v-row no-gutters align="center">
+                <v-col cols="4">
+                    <v-icon>mdi-wizard-hat</v-icon> Wizards:
+                </v-col>
+                <v-col>
+                    <v-tooltip v-for="wizE in Object.keys(wizardEditors)" :text="wizardEditors[wizE].tooltip" location="top">
+                        <template v-slot:activator="{ props }">
+                            <span
+                                v-bind="props"
+                                @click="openWizard(wizardEditors[wizE])"
+                                style="margin-left: 0.5em; cursor: pointer;"
+                            >
+                                <span v-if="wizardEditors[wizE].iconFig.type == 'mdi'">
+                                    <v-icon>{{ wizardEditors[wizE].iconFig.icon }}</v-icon>
+                                </span>
+                                <span v-else>
+                                    <SVGIcon :icon="wizardEditors[wizE].iconFig.icon"></SVGIcon>
+                                </span>
+                            </span>
+                        </template>
+                    </v-tooltip>
+                    <v-dialog v-model="wizardDialog" max-width="800px">
+                        <WizardEditor :wizardConfig="selectedWizard" @save="handleWizardSave" @cancel="handleWizardCancel"></WizardEditor>
+                    </v-dialog>
+                </v-col>
+            </v-row>
+        </span>
         <span v-if="classProperties[localShapeIri].length > 0">
-            <h3>
-                Properties from:
-                <code class="code-style">{{
-                    getDisplayName(localShapeIri, configVarsMain, allPrefixes, shape_obj)
-                }}</code>
-            </h3>
-            <br />
             <span
                 v-for="property in classProperties[localShapeIri]"
                 :key="localShapeIri + '-' + localNodeIdx + '-' + property"
@@ -23,13 +44,6 @@
 
         <span v-for="c in superClasses[localShapeIri]">
             <span v-if="groupHasVisibleProps(c)">
-                <h3>
-                    Properties from:
-                    <code class="code-style">{{
-                        getDisplayName(c, configVarsMain, allPrefixes, shapesDS.data.nodeShapes[c])
-                    }}</code>
-                </h3>
-                <br />
                 <span
                     v-for="property in classProperties[c]"
                     :key="
@@ -53,9 +67,18 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount, onMounted, inject, toRaw } from 'vue';
-import { SHACL, RDF, RDFS, DLCO } from '../modules/namespaces';
-import { getDisplayName, objectsEqual, nameOrCURIE} from '../modules/utils';
+import { ref, onBeforeUnmount, onMounted, inject, toRaw, reactive} from 'vue';
+import { SHACL, RDF, DLCO } from '../modules/namespaces';
+import { 
+    objectsEqual,
+    nameOrCURIE,
+    getContent,
+    fillStringTemplate,
+    findObjectByKey,
+    findObjectIndexByKey,
+} from '../modules/utils';
+import { toCURIE } from 'shacl-tulip';
+import SVGIcon from '@/components/SVGIcon.vue'
 
 // ----- //
 // Props //
@@ -73,15 +96,40 @@ const props = defineProps({
 const localShapeIri = ref(props.shape_iri);
 const localNodeIdx = ref(props.node_idx);
 const shapesDS = inject('shapesDS');
+const rdfDS = inject('rdfDS');
+const formData = inject('formData');
 const superClasses = inject('superClasses');
 const allPrefixes = inject('allPrefixes');
 const configVarsMain = inject('configVarsMain');
 const show_all_fields = inject('show_all_fields');
+const savedNodes = inject('savedNodes');
+const nodesToSubmit = inject('nodesToSubmit');
+const registerHandler = inject('registerHandler')
 const shape_obj = shapesDS.data.nodeShapes[localShapeIri.value];
 const ready = ref(false);
 const ignoredProperties = [RDF.type.value];
 var propertyShapes = {};
 var classProperties;
+const showWizards = ref(false)
+const wizardEditors = reactive({});
+const wizardDialog = ref(false);
+const selectedWizard = ref(null);
+const wizardAddedQuads = ref([]);
+function onFormCancel() {
+    console.log("Running onFormCancel from NodeShapeEditor")
+    for (const q of wizardAddedQuads.value) {
+        // remove named nodes from savedNodes and nodesToSubmit
+        if (q.subject.termType == 'NamedNode' && q.predicate.value == RDF.type.value) {
+            console.log(`Removing named node from savedNodes and nodesToSubmit: ${q.subject.value}`)
+            savedNodes.value.splice(findObjectIndexByKey(savedNodes.value, 'node_iri', q.subject.value), 1)
+            nodesToSubmit.value.splice(findObjectIndexByKey(nodesToSubmit.value, 'node_iri', q.subject.value), 1)
+        }
+        // remove quad from graph store
+        console.log(`Removing quad from graph store: ${q.subject.value} - ${q.predicate.value} - ${q.object.value}`)
+        rdfDS.data.graph.delete(q)
+    }
+}
+registerHandler('cancel', onFormCancel)
 
 // ----------------- //
 // Lifecycle methods //
@@ -92,7 +140,19 @@ onMounted(() => {
         propertyShapes[p[SHACL.path.value]] = p;
     }
     classProperties = orderProperties(propertyShapes);
-    console.log(classProperties);
+    console.log(localShapeIri.value)
+    let classCurie = toCURIE(localShapeIri.value, allPrefixes)
+    // Load wizard editors if any, also load template content
+    if (Object.keys(configVarsMain.wizardEditorSelection) && Object.keys(configVarsMain.wizardEditorSelection).includes(classCurie)){
+        for (const wizard of configVarsMain.wizardEditorSelection[classCurie]) {
+            wizardEditors[wizard] = configVarsMain.wizardEditors[wizard]
+            wizardEditors[wizard].template = getContent(configVarsMain.content, wizardEditors[wizard].template)
+            wizardEditors[wizard].iconFig = getIcon(wizardEditors[wizard])
+        }
+    }
+    if (Object.keys(wizardEditors).length > 0) {
+        showWizards.value = true
+    }
     ready.value = true;
 });
 
@@ -104,6 +164,97 @@ onBeforeUnmount(() => {
 // --------- //
 // Functions //
 // --------- //
+
+function getIcon(wizard) {
+    if (wizard.icon) {
+        if (wizard.icon.startsWith('mdi-')) {
+            return {
+                type: 'mdi',
+                icon: wizard.icon
+            }
+        } else if (wizard.icon.startsWith('content:')) {
+            return {
+                type: 'svg',
+                icon: getContent(configVarsMain.content, wizard.icon)
+            }
+        } else {
+            return {
+                type: 'svg',
+                icon: wizard.icon
+            }
+        }
+    }
+    return {
+        type: 'mdi',
+        icon: 'mdi-plus-box'
+    }
+}
+
+function openWizard(wizard) {
+    selectedWizard.value = wizard;
+    wizardDialog.value = true;
+}
+
+async function handleWizardSave(wizardData) {
+    // vars
+    let class_uri = localShapeIri.value;
+    let subject_uri = localNodeIdx.value;
+    wizardDialog.value = false;
+    selectedWizard.value = null;
+    // Add current formData node ID as "pid"
+    wizardData.pid = subject_uri;
+    // fill string template
+    let newTTL = fillStringTemplate(wizardData._template, wizardData)
+    // parse TTL, adding quads to graph data
+    let newQuads = await rdfDS.parseTTLandDedup(newTTL);
+    rdfDS.triggerReactivity();
+    // Now we process each added quad
+    for (const q of newQuads) {
+        // If the quad has the current node ID as subject, we need to add it to formdata, and also remove the quad from graph store
+        // If the quad has a different named node as subject, we need to keep track of it for submission purposes
+        if (q.subject.value == subject_uri) {
+            // Skip unlikely but possible redeclaration of the current record
+            if (q.predicate.value != RDF.type.value) {
+                // Do not add an object to the predicate array if the exact value already exists there
+                let mustAddObject = true;
+                let objectArray = formData.content[class_uri][subject_uri][q.predicate.value]
+                if (objectArray) {
+                    const existingObjectVal = objectArray.find((element) => element.value === q.object.value);
+                    if (existingObjectVal) mustAddObject = false;
+                }
+                if (mustAddObject) {
+                    // we use formData.addPredicate because formData.addObject assumes the predicate already has at least one value in the array
+                    formData.addPredicate(class_uri, subject_uri, q.predicate.value)
+                    let newLength = formData.content[class_uri][subject_uri][q.predicate.value].length
+                    formData.content[class_uri][subject_uri][q.predicate.value][newLength-1].value = q.object.value;
+                    formData.content[class_uri][subject_uri][q.predicate.value][newLength-1]._key = crypto.randomUUID();
+                }
+            }
+            // now we remove the record quad from graph because it was added prematurely;
+            // this will be re-added, (importantly: with the correct PID), when the main form is saved
+            rdfDS.data.graph.delete(q)
+        } else {
+            // We keep track of all quads added to the graph, in case they need to be removed on form cancel
+            wizardAddedQuads.value.push(q);
+            // We need to keep track of the named nodes saved to the graph, for submission
+            if (q.subject.termType == 'NamedNode' && q.predicate.value == RDF.type.value) {
+                let saved_node = {
+                    nodeshape_iri: q.object.value,
+                    node_iri: q.subject.value
+                }
+                savedNodes.value.push(saved_node);
+                if (!findObjectByKey(nodesToSubmit.value, 'node_iri', saved_node.node_iri)) {
+                    nodesToSubmit.value.push(saved_node);
+                }
+            }
+        }
+    }
+}
+
+function handleWizardCancel() {
+    wizardDialog.value = false;
+    selectedWizard.value = null;
+}
 
 function orderProperties(propertyShapes) {
     // The current class has a possible hierarchy of superclasses

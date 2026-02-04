@@ -10,3 +10,4 @@ layout: doc
 2. [Forgejo integration](./features-forgejo)
 3. [Config-driven editor matching](./features-editor-matching)
 4. [File upload](./features-file-upload)
+5. [Wizard editors](./features-wizard-editors)

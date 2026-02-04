@@ -93,6 +93,8 @@ const mainVarsToLoad = {
     gitannex_p2phttp_config: {},
     update_shapes: {},
     update_shapes_default: {},
+    wizard_editors: {},
+    wizard_editor_selection: {},
 };
 
 function mergeCustomizer(objValue, srcValue) {
