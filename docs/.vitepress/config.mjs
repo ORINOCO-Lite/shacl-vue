@@ -93,6 +93,7 @@ const config = defineConfig({
           { text: 'Forgejo integration', link: '/features-forgejo' },
           { text: 'Config-driven editor matching', link: '/features-editor-matching' },
           { text: 'File upload', link: '/features-file-upload' },
+          { text: 'Wizard editors', link: '/features-wizard-editors' },
         ]
       },
       {
