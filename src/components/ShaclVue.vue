@@ -157,16 +157,21 @@
                                                 </span>
                                                 &nbsp;&nbsp;
 
-                                                <v-btn
-                                                    icon="mdi-plus"
-                                                    size="x-small"
-                                                    variant="tonal"
-                                                    @click="addInstanceItem()"
-                                                    :disabled="
-                                                        openForms.length > 0 ||
-                                                        !canEditClass
-                                                    "
-                                                ></v-btn>
+                                                <v-tooltip text="Create a new record" location="top">
+                                                    <template v-slot:activator="{ props }">
+                                                        <v-btn
+                                                            v-bind="props"
+                                                            icon="mdi-plus"
+                                                            size="x-small"
+                                                            variant="tonal"
+                                                            @click="addInstanceItem()"
+                                                            :disabled="openForms.length > 0 || !canEditClass"
+                                                        ></v-btn>
+                                                    </template>
+                                                </v-tooltip>
+                                                <span v-if="showWizardGroup(configVarsMain, '_class', selectedIRI, allPrefixes)">
+                                                    <WizardGroup :context="'_class'" :classUri="selectedIRI"></WizardGroup>
+                                                </span>
                                             </h2>
 
                                             <p
@@ -514,6 +519,8 @@ import {
     DynamicScrollerItem,
 } from 'vue-virtual-scroller';
 import { useDisplay } from 'vuetify'
+import WizardGroup from '@/components/WizardGroup.vue'
+import { showWizardGroup } from '@/composables/useWizard'
 const { smAndDown, mobile } = useDisplay()
 const { namedNode } = DataFactory;
 
@@ -761,7 +768,6 @@ watch(
                 config.value.hasOwnProperty('service_fetch_before') &&
                 config.value.service_fetch_before
             ) {
-                console.log('service_fetch_before!');
                 if (
                     config.value.service_fetch_before['get-record']?.length > 0
                 ) {
