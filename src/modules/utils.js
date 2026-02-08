@@ -705,6 +705,9 @@ function updatePropertyShape(targetPropertyShape, updateObject, allPrefixes) {
     for (const key of Object.keys(updateObject)) {
         const val = updateObject[key]
         const keyIRI = toIRI(key, allPrefixes);
+        if (val === null) {
+            delete targetPropertyShape[keyIRI]
+        }
         if (typeof val == "boolean") {
             // variable is a boolean, need to write as string to prevent value errors down the line
             // this is because loading the boolean variable from shacl into javascript also casts it as a string
@@ -768,6 +771,7 @@ function updateAllShapes(configVarsMain, shapesDS, allPrefixes) {
     }
 
     for (const targetNodeShapeIRI of Object.keys(toRaw(shapesDS.data.nodeShapes))) {
+        // TODO: the following should be removed once new property ordering is implemented
         if (!includeClass(targetNodeShapeIRI, configVarsMain, allPrefixes)) {
             // Here we skip any classes that should not be shown in the UI.
             // This is a proxy for: only add defaults to inherited classes, not parents
