@@ -1163,7 +1163,9 @@ async function onTypingPause(textVal) {
 import { SHACL } from '@/modules/namespaces';
 export const matchingLogic = (shape) => {
     // sh:nodeKind exists
-    if (shape.hasOwnProperty(SHACL.nodeKind.value)) {
+    if (shape.hasOwnProperty(SHACL.nodeKind.value) && shape.hasOwnProperty(SHACL.class.value)
+        && shape[SHACL.class.value] !== null
+    ) {
         // sh:nodeKind == sh:IRI ||
         // sh:nodeKind == sh:BlankNodeOrIRI ||
         return [SHACL.IRI.value, SHACL.BlankNodeOrIRI.value].includes(
