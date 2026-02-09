@@ -712,6 +712,8 @@ function updatePropertyShape(targetPropertyShape, updateObject, allPrefixes) {
             // variable is a boolean, need to write as string to prevent value errors down the line
             // this is because loading the boolean variable from shacl into javascript also casts it as a string
             targetPropertyShape[keyIRI] = `${val}`
+        } else if (typeof val == "string") {
+            targetPropertyShape[keyIRI] = toIRI(val, allPrefixes)
         } else {
             targetPropertyShape[keyIRI] = val
         }
