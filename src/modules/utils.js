@@ -821,3 +821,26 @@ export function getJsRegex(xsdPattern) {
     }
     return {jsFlags, jsPattern};
 }
+
+export function updatePropertyGroups(configVarsMain, shapesDS) {
+    const pGs = configVarsMain.propertyGroups
+    var high_order;
+    for (const group of Object.keys(configVarsMain.propertyGroups)) {
+        const newGroup = {};
+        if (pGs[group].title) newGroup[RDFS.label.value] = pGs[group].title;
+        if (pGs[group].order) newGroup[SHACL.order.value] = pGs[group].order;
+        if (pGs[group].description) newGroup[RDFS.comment.value] = pGs[group].description;
+        shapesDS.data.propertyGroups[group] = newGroup;
+        if (!high_order) {
+            if (pGs[group].order) high_order = pGs[group].order;
+        } else {
+            if (pGs[group].order && pGs[group].order > high_order) {
+                high_order = pGs[group].order;
+            }
+        }
+    }
+    // Add "Additional properties" group, i.e. default
+    shapesDS.data.propertyGroups['_default'] = {};
+    shapesDS.data.propertyGroups['_default'][RDFS.label.value] = "Additional properties";
+    shapesDS.data.propertyGroups['_default'][SHACL.order.value] = high_order + 100;
+}

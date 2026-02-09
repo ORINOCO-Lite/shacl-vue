@@ -95,6 +95,7 @@ const mainVarsToLoad = {
     update_shapes_default: {},
     wizard_editors: {},
     wizard_editor_selection: {},
+    property_groups: {},
 };
 
 function mergeCustomizer(objValue, srcValue) {

@@ -499,6 +499,7 @@ import {
     includeClass,
     transformSearchFieldName,
     updateShapesDataset,
+    updatePropertyGroups,
 } from '../modules/utils';
 import { toCURIE, toIRI } from 'shacl-tulip';
 import editorMatchers from '@/modules/editors';
@@ -797,6 +798,15 @@ watch(
             ) {
                 updateShapesDataset(configVarsMain, shapesDS, allPrefixes)
             }
+            console.log("toRaw(shapesDS.data.nodeShapes):")
+            console.log(toRaw(shapesDS.data.nodeShapes))
+            if (
+                configVarsMain.propertyGroups && Object.keys(configVarsMain.propertyGroups).length > 0
+            ) {
+                updatePropertyGroups(configVarsMain, shapesDS)
+            }
+            console.log("toRaw(shapesDS.data.propertyGroups):")
+            console.log(toRaw(shapesDS.data.propertyGroups))
             // Get object with nodeshape uris as keys and their superclass arrays as values
             // This is necessary for ordering the properties according to their originating class, for display
             for (var uri of shapesDS.data.nodeShapeIRIs) {

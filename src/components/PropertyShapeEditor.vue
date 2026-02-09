@@ -407,6 +407,10 @@ const show_field = computed(() => {
         ) {
             return true;
         }
+        if (localPropertyShape.value.hasOwnProperty(SHACL.order.value) &&
+            localPropertyShape.value[SHACL.order.value] < 1000000) {
+            return true;
+        }
         return false;
     }
 });
