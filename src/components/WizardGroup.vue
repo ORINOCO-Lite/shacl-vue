@@ -60,17 +60,20 @@ const {
 // ----------------- //
 // Lifecycle methods //
 // ----------------- //
-
 onMounted(() => {
     setupWizards(props.context, props.classUri, configVarsMain, allPrefixes)
     if (props.context == '_record') {
-        registerHandler('cancel', onFormWithWizardCancel)
+        registerHandler('cancel', cancelWizard)
     }
 });
 
 // --------- //
 // Functions //
 // --------- //
+
+function cancelWizard() {
+    onFormWithWizardCancel(savedNodes, nodesToSubmit, rdfDS)
+}
 
 function saveWizard(wizardData) {
     handleWizardSave(

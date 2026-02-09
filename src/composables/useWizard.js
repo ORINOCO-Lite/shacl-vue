@@ -1,6 +1,7 @@
 import { ref, reactive } from "vue";
 import { getContent, fillStringTemplate, findObjectByKey, findObjectIndexByKey} from "@/modules/utils";
 import { toCURIE } from "shacl-tulip";
+import { RDF } from "@/modules/namespaces";
 
 
 export function showWizardGroup(configVarsMain, context, classUri, allPrefixes) {
@@ -147,7 +148,7 @@ export function useWizard() {
         }
     }
 
-    function onFormWithWizardCancel(savedNodes, nodesToSubmit) {
+    function onFormWithWizardCancel(savedNodes, nodesToSubmit, rdfDS) {
         console.log("Running onFormWithWizardCancel")
         for (const q of wizardAddedQuads.value) {
             // remove named nodes from savedNodes and nodesToSubmit
