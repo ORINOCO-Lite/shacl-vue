@@ -52,6 +52,17 @@ export function useWizard() {
     }
 
     async function handleWizardSave(context, class_uri, wizardData, rdfDS, savedNodes, nodesToSubmit, subject_uri=null, formData) {
+
+        console.log("handleWizardSave")
+        console.log("context:")
+        console.log(context)
+        console.log("class_uri:")
+        console.log(class_uri)
+        console.log("wizardData:")
+        console.log(wizardData)
+        console.log("subject_uri:")
+        console.log(subject_uri)
+
         wizardDialog.value = false;
         selectedWizard.value = null;
         // if the context is '_record', add the current formData node ID as "pid"
@@ -60,14 +71,19 @@ export function useWizard() {
         }
         // Now we fill string template
         let newTTL = fillStringTemplate(wizardData._template, wizardData)
+        console.log("filled string template:")
+        console.log(newTTL)
         // And then parse TTL, adding quads to graph data
         let newQuads = await rdfDS.parseTTLandDedup(newTTL);
         rdfDS.triggerReactivity();
         // Now we process each added quad differently based on context:
         // if context is _record, we need to work with formData of current record being edited
         // if context is _class or higher level, we can ignore formData because everything happens via template
+        console.log("All added quads after wizard save:")
         if (context == '_record') {
             for (const q of newQuads) {
+                console.log(`${q.subject.value} - ${q.predicate.value} - ${q.object.value}`)
+
                 // If the quad has the current node ID as subject, we need to add it to formdata, and also remove the quad from graph store
                 // If the quad has a different named node as subject, we need to keep track of it for submission purposes
                 if (q.subject.value == subject_uri) {
@@ -90,6 +106,7 @@ export function useWizard() {
                     }
                     // now we remove the record quad from graph because it was added prematurely;
                     // this will be re-added, (importantly: with the correct PID), when the main form is saved
+                    console.log("going to delete this quad ^^")
                     rdfDS.data.graph.delete(q)
                 } else {
                     // We keep track of all other quads added to the graph, in case they need to be removed on form cancel
@@ -99,6 +116,7 @@ export function useWizard() {
                 }
             }
         } else {
+            console.log("The context was not _record...")
             for (const q of newQuads) {
                 // Here we do not have to keep track of quads added to the graph,
                 // because there's no parent form that can still be cancelled.
