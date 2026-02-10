@@ -43,6 +43,7 @@ const configVarsMain = inject('configVarsMain')
 const allPrefixes = inject('allPrefixes')
 const rdfDS = inject('rdfDS')
 const formData = inject('formData')
+const shapesDS = inject('shapesDS')
 const savedNodes = inject('savedNodes')
 const nodesToSubmit = inject('nodesToSubmit')
 const {
@@ -54,16 +55,18 @@ const {
     openWizard,
     handleWizardCancel,
     handleWizardSave,
-    onFormWithWizardCancel
+    onFormWithWizardCancel,
+    onFormWithWizardSave,
 } = useWizard();
 
 // ----------------- //
 // Lifecycle methods //
 // ----------------- //
 onMounted(() => {
-    setupWizards(props.context, props.classUri, configVarsMain, allPrefixes)
+    setupWizards(props.context, props.classUri, configVarsMain, allPrefixes, shapesDS)
     if (props.context == '_record') {
-        registerHandler('cancel', cancelWizard)
+        registerHandler('cancel', cancelWizardForm)
+        registerHandler('save', saveWizardForm)
     }
 });
 
@@ -71,8 +74,12 @@ onMounted(() => {
 // Functions //
 // --------- //
 
-function cancelWizard() {
+function cancelWizardForm() {
     onFormWithWizardCancel(savedNodes, nodesToSubmit, rdfDS)
+}
+
+function saveWizardForm() {
+    onFormWithWizardSave(props.classUri, props.recordUri, formData, rdfDS, configVarsMain)
 }
 
 function saveWizard(wizardData) {

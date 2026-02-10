@@ -11,7 +11,7 @@
                 validate-on="lazy input"
                 @submit.prevent="saveForm()"
             >
-                <v-row no-gutters align="center" v-for="input in props.wizardConfig.inputs" :key="input.prop">
+                <v-row no-gutters align="stretch" v-for="input in props.wizardConfig.inputs" :key="input.prop">
                     <v-col cols="4">
                         <span v-if="input.description">
                             <v-tooltip  :text="input.description" location="end top" origin="start bottom">
@@ -34,6 +34,12 @@
                         </span>
                         <span v-else-if="input.type == 'boolean'">
                             <v-switch v-model="modelVals[input.prop]" density="compact" variant="outlined" :label="input.placeholder ? input.placeholder : 'select value'" inset hide-details="auto" :rules="rules[input.prop]"></v-switch>
+                        </span>
+                        <span v-else-if="input.type == 'upload'">
+                            <GitAnnexUploader4Wiz
+                                :config="uploadConfig"
+                                v-model="modelVals[input.prop]"
+                            ></GitAnnexUploader4Wiz>
                         </span>
                         <span v-else>
                             kaaaaaaaaa
@@ -67,7 +73,8 @@
 </template>
 
 <script setup>
-import { reactive, ref, toRaw, watch} from 'vue';
+import { reactive, ref, toRaw, watch, inject} from 'vue';
+import GitAnnexUploader4Wiz from '@/components/GitAnnexUploader4Wiz.vue'
 
 // Define component props
 const props = defineProps({
@@ -75,11 +82,14 @@ const props = defineProps({
 });
 const emit = defineEmits(['save', 'cancel'])
 // Refs
+
 const wizardForm = ref(null);
 const wizardFormValid = ref(null);
 const modelVals = reactive({})
 const rules = reactive({});
 const baseRules = {}
+const configVarsMain = inject('configVarsMain');
+const uploadConfig = configVarsMain.gitannexP2phttpConfigWizard ?? {};
 
 watch(
     () => props.wizardConfig,

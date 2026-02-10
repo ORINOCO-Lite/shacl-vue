@@ -1,7 +1,7 @@
 <template>
     <span v-if="ready">
-        <span v-if="showWizardGroup(configVarsMain, '_record', localShapeIri, allPrefixes)">
-            <v-row no-gutters align="center">
+        <span v-if="showWizardGroup(configVarsMain, '_record', localShapeIri, allPrefixes, shapesDS)">
+            <v-row no-gutters align="center" style="margin-bottom: 1em;">
                 <v-col cols="4">
                     <v-icon>mdi-wizard-hat</v-icon> Wizards:
                 </v-col>
