@@ -91,6 +91,7 @@ const mainVarsToLoad = {
     class_name_display: 'name',
     footer_links: [],
     gitannex_p2phttp_config: {},
+    gitannex_p2phttp_config_wizard: {},
     update_shapes: {},
     update_shapes_default: {},
     wizard_editors: {},

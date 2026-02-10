@@ -489,6 +489,16 @@ export function nodeShapeHasPID(nodeshapeIRI, shapesDS, pidIRI) {
     return ps ? true : false
 }
 
+export function nodeShapeHasProperty(nodeshapeIRI, shapesDS, inputURI, allPrefixes) {
+    // True if the nodeshape has a propertyshape with sh:path being equal to input URI,
+    var nodeShape = shapesDS.data.nodeShapes[nodeshapeIRI];
+    if (!nodeShape) return undefined
+    var ps = nodeShape.properties.find(
+        (prop) => prop[SHACL.path.value] == toIRI(inputURI, allPrefixes)
+    );
+    return ps ? true : false
+}
+
 export function getNodeShapePropertyWithAnnotations(nodeshapeIRI, shapesDS, annotations = {}, prefixes) {
     // For the given SHACL NodeShape, check if it has a property shape that is annotated
     // with a set of provided annotations
@@ -629,16 +639,22 @@ export function getContent(content, key) {
 }
 
 export function fillStringTemplate(template, params) {
-    return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => {
-        if (!(key in params)) {
-            if (key == '_randomUUID') {
-                return crypto.randomUUID()
-            } else {
-                console.error(`Error: No value provided for placeholder {${key}}`);
-                return match;
-            }
+    return template.replace(/\{([a-zA-Z0-9_.]+)\}/g, (match, keyPath) => {
+        if (keyPath === '_randomUUID') {
+            return crypto.randomUUID();
         }
-        return params[key];
+        // Resolve dot notation
+        const value = keyPath.split('.').reduce((acc, key) => {
+                if (acc && Object.prototype.hasOwnProperty.call(acc, key)) {
+                    return acc[key];
+                }
+                return undefined;
+            }, params);
+        if (value === undefined) {
+            console.error(`Error: No value provided for placeholder {${keyPath}}`);
+            return match;
+        }
+        return value;
     });
 }
 
