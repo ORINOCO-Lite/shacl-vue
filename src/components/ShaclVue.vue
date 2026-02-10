@@ -169,7 +169,7 @@
                                                         ></v-btn>
                                                     </template>
                                                 </v-tooltip>
-                                                <span v-if="showWizardGroup(configVarsMain, '_class', selectedIRI, allPrefixes)">
+                                                <span v-if="showWizardGroup(configVarsMain, '_class', selectedIRI, allPrefixes, shapesDS)">
                                                     <WizardGroup :context="'_class'" :classUri="selectedIRI"></WizardGroup>
                                                 </span>
                                             </h2>
