@@ -263,7 +263,7 @@ async function copyErrorText(text, i) {
 .error-stack {
     border: 1px solid rgb(255, 112, 112);
     border-radius: 8px;
-    background-color: #efefef;
+    background-color: rgb(var(--v-theme-background));
     overflow-x: scroll;
     padding: 0.5em;
 }
