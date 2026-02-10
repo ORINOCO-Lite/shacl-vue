@@ -118,13 +118,13 @@ function computeUsedPropertyGroups() {
         // propertyGroup (with e.g. name, description, order) and is therefore
         // not part of the incoming SHACL, i.e. not in propertyGroups.value
         if (shapesDS.data.propertyGroups[group_name]) {
-            used_prop_groups[group_name] = shapesDS.data.propertyGroups[group_name]
+            used_prop_groups[group_name] = structuredClone(toRaw(shapesDS.data.propertyGroups[group_name]))
         } else {
             used_prop_groups[group_name] = {}
         }
     }
     // add default property group to used
-    used_prop_groups['_default'] = shapesDS.data.propertyGroups['_default']
+    used_prop_groups['_default'] = structuredClone(toRaw(shapesDS.data.propertyGroups['_default']))
     // initialise 'own_properties' array
     for (var group_name of Object.keys(used_prop_groups)) {
         used_prop_groups[group_name]["own_properties"] = []
