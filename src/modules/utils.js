@@ -789,14 +789,6 @@ function updateAllShapes(configVarsMain, shapesDS, allPrefixes) {
     }
 
     for (const targetNodeShapeIRI of Object.keys(toRaw(shapesDS.data.nodeShapes))) {
-        // TODO: the following should be removed once new property ordering is implemented
-        if (!includeClass(targetNodeShapeIRI, configVarsMain, allPrefixes)) {
-            // Here we skip any classes that should not be shown in the UI.
-            // This is a proxy for: only add defaults to inherited classes, not parents
-            // because having the same annotations in parent and children classes messes
-            // with the property ordering algorithm.
-            continue;
-        }
         const targetNodeShapeProperties = shapesDS.data.nodeShapes[targetNodeShapeIRI]['properties']
         for (const slot of Object.keys(configShapesDefault['_all_property_shapes'])) {
             const pathIRI = toIRI(slot, allPrefixes)
