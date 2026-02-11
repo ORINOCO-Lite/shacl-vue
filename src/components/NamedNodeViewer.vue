@@ -1,12 +1,21 @@
 <template>
-    <span v-if="isLink && allowLink">
-        <a
-            style="cursor: pointer"
-            @click.prevent="selectNamedNode(currentClassIRI, currentRecordPID)"
-            >{{ contentVal }}</a
-        >
-    </span>
-    <span v-else>{{ contentVal }}</span>
+    <v-tooltip location="top start">
+        <template v-slot:activator="{ props }">
+            <span v-bind="props" v-if="isLink && allowLink">
+                <a
+                    style="cursor: pointer"
+                    @click.prevent="selectNamedNode(currentClassIRI, currentRecordPID)"
+                    >{{ contentVal }}</a
+                >
+            </span>
+            <span v-bind="props" v-else>{{ contentVal }}</span>
+        </template>
+        <template v-slot:default="{ isActive }">
+            <v-icon >{{ getClassIcon(currentClassIRI, allPrefixes) }}</v-icon>
+            {{ getDisplayName(currentClassIRI, configVarsMain, allPrefixes, shapesDS.data.nodeShapes[currentClassIRI]) }}
+        </template>
+    </v-tooltip>
+    
     <span v-if="resolveExternally">
         <sup
             ><a class="inline-icon-btn" :href="hrefVal" target="_blank"
@@ -19,7 +28,7 @@
 <script setup>
 import { onBeforeMount, ref, inject, onMounted } from 'vue';
 import { toIRI, toCURIE } from 'shacl-tulip';
-import { includeClass } from '@/modules/utils';
+import { includeClass,  getDisplayName} from '@/modules/utils';
 const props = defineProps({
     textVal: String,
     prefLabel: String,
@@ -34,6 +43,8 @@ const props = defineProps({
 const allPrefixes = inject('allPrefixes');
 const selectNamedNode = inject('selectNamedNode');
 const configVarsMain = inject('configVarsMain');
+const shapesDS = inject('shapesDS');
+const getClassIcon = inject('getClassIcon');
 const isLink = ref(false);
 const hrefVal = ref('');
 const contentVal = ref('');

@@ -180,7 +180,7 @@
                     <span v-if="i < showCounts['BlankNodeSpecial'][k]" class="line-item">
                         <span v-if="item.keyPropertyRole?.classIRI && item.keyPropertyRole?.recordPID">
                             &nbsp;-&nbsp;
-                            <v-tooltip :text="item.keyPropertyRole.classIRI" location="top start">
+                            <v-tooltip location="top start">
                                 <template v-slot:activator="{ props }">
                                     <a
                                         v-bind="props"
