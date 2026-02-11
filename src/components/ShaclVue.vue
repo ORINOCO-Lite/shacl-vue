@@ -102,8 +102,7 @@
                             <v-container fluid>
                                 <v-row>
                                     <v-col
-                                        v-show="formOpen ? (mobile ? false : true) : true"
-                                        :cols="formOpen ? 3 : 12"
+                                        v-show="formOpen ? false : true"
                                         class="transition-all"
                                         :class="
                                             formOpen ? 'opacity-column' : ''
@@ -368,7 +367,7 @@
                                         </span>
 
                                     </v-col>
-                                    <v-col v-if="formOpen" :cols="mobile ? 12 : 9">
+                                    <v-col v-if="formOpen">
                                         <v-expansion-panels
                                             variant="accordion"
                                             v-model="currentOpenForm"
@@ -1232,7 +1231,7 @@ function addInstanceItem() {
     addForm(selectedIRI.value, newItemIdx.value, 'new');
     addItem.value = true;
     formOpen.value = true;
-    drawer.value = false;
+    if (mobile.value) drawer.value = false;
     canSubmit.value = false;
     updateURL(selectedIRI.value, true);
 }
@@ -1264,7 +1263,7 @@ async function editInstanceItem(instance, addQuadsToForm = true, removeNode = tr
     addForm(editShapeIRI.value, editItemIdx.value, 'edit', removeNode);
     editItem.value = true;
     formOpen.value = true;
-    drawer.value = false;
+    if (mobile.value) drawer.value = false;
     canSubmit.value = false;
     updateURL(editShapeIRI.value, true, editItemIdx.value);
 }
@@ -1554,23 +1553,6 @@ function removeForm(savedNode) {
 provide('addForm', addForm);
 provide('openForms', openForms);
 provide('removeForm', removeForm);
-
-
-const showRecords = computed(() => {
-    if (formOpen.value) {
-        if (mobile.value) {
-            return false
-        } else {
-            return true
-        }
-    } else {
-        return true;
-    }
-
-    return formOpen ? (mobile ? false : true) : true
-})
-
-
 </script>
 
 <style>
