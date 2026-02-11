@@ -180,11 +180,21 @@
                     <span v-if="i < showCounts['BlankNodeSpecial'][k]" class="line-item">
                         <span v-if="item.keyPropertyRole?.classIRI && item.keyPropertyRole?.recordPID">
                             &nbsp;-&nbsp;
-                            <a
-                                style="cursor: pointer"
-                                @click.prevent="selectNamedNode(item.keyPropertyRole.classIRI, item.keyPropertyRole.recordPID)"
-                                >{{ item.displayLabel }}</a
-                            >
+                            <v-tooltip :text="item.keyPropertyRole.classIRI" location="top start">
+                                <template v-slot:activator="{ props }">
+                                    <a
+                                        v-bind="props"
+                                        style="cursor: pointer"
+                                        @click.prevent="selectNamedNode(item.keyPropertyRole.classIRI, item.keyPropertyRole.recordPID)"
+                                        >{{ item.displayLabel }}</a
+                                    >
+                                </template>
+                                <template v-slot:default="{ isActive }">
+                                    <v-icon >{{ getClassIcon(item.keyPropertyRole.classIRI, allPrefixes) }}</v-icon>
+                                    {{ getDisplayName(item.keyPropertyRole.classIRI, configVarsMain, allPrefixes, shapesDS.data.nodeShapes[item.keyPropertyRole.classIRI]) }}
+                                </template>
+                            </v-tooltip>
+                            
                         </span>
                         <span v-else>
                             &nbsp;-&nbsp;<LiteralNodeViewer :textVal="item.displayLabel" :wrap="'wrap'" :allowLink="false"></LiteralNodeViewer>
@@ -298,6 +308,7 @@ import {
     hasConfigDisplayLabel,
     getNodeShapePropertyWithAnnotations,
     getSubjectQuad,
+    getDisplayName,
 } from '../modules/utils';
 import { RDF, SHACL } from '@/modules/namespaces';
 import MoreOrLessRecordsViewer from './MoreOrLessRecordsViewer.vue';
