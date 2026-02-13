@@ -18,9 +18,18 @@
 </script>
 
 <style scoped>
+.custom-svg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
 .custom-svg svg {
     width: 100%;
     height: 100%;
+    display: block;
     fill: currentColor;
 }
 </style>
