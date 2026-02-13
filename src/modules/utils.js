@@ -852,3 +852,71 @@ export function updatePropertyGroups(configVarsMain, shapesDS) {
     shapesDS.data.propertyGroups['_default'][RDFS.label.value] = "Additional properties";
     shapesDS.data.propertyGroups['_default'][SHACL.order.value] = high_order + 100;
 }
+
+export function findBlankNodeLink(data, config, allPrefixes) {
+
+    const { slot, match = [], return: returnKey } = config;
+
+    let slotIRI = toIRI(slot, allPrefixes)
+
+    // 1. Check that the slot exists
+    const blankNodes = data?.triples?.BlankNode;
+    if (!blankNodes || !blankNodes[slotIRI]) {
+        return undefined;
+    }
+
+    const relatedTriples = blankNodes[slotIRI]?.relatedTriples;
+    if (!Array.isArray(relatedTriples)) {
+        return undefined;
+    }
+    console.log(relatedTriples)
+
+    // 2. Filter triples that satisfy ALL match conditions
+    const matches = relatedTriples.filter(triple => {
+        return match.every(({ key, val }) => {
+            const keyIRI = toIRI(key, allPrefixes)
+            console.log(key)
+            const valIRI = toIRI(val, allPrefixes);
+            console.log(valIRI)
+            const tripleValue = triple[key];
+            console.log(tripleValue)
+            // key must exist and value must be an array containing val
+            return Array.isArray(tripleValue) && tripleValue.includes(valIRI);
+        });
+    });
+
+    if (matches.length === 0) {
+        return undefined;
+    }
+
+    // 3. Return the requested key values
+    const results = matches
+        .map(triple => triple[returnKey])
+        .filter(Boolean) // remove undefined
+        .flat();         // flatten arrays like ["url"]
+
+    return results.length ? results : undefined;
+}
+
+export function getIcon(iconText, configVarsMain, defaultIcon={type: 'mdi',icon: 'mdi-plus-box'}) {
+    if (iconText) {
+        if (iconText.startsWith('mdi-')) {
+            return {
+                type: 'mdi',
+                icon: iconText
+            }
+        } else if (iconText.startsWith('content:')) {
+            return {
+                type: 'svg',
+                icon: getContent(configVarsMain.content, iconText)
+            }
+        } else {
+            return {
+                type: 'svg',
+                icon: iconText
+            }
+        }
+    } else {
+        return defaultIcon
+    }
+}

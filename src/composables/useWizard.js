@@ -1,5 +1,5 @@
 import { ref, reactive } from "vue";
-import { getContent, fillStringTemplate, findObjectByKey, findObjectIndexByKey, nodeShapeHasProperty} from "@/modules/utils";
+import { getContent, fillStringTemplate, findObjectByKey, findObjectIndexByKey, nodeShapeHasProperty, getIcon} from "@/modules/utils";
 import { toCURIE, toIRI } from "shacl-tulip";
 import { RDF } from "@/modules/namespaces";
 import { DataFactory } from 'n3';
@@ -55,7 +55,7 @@ export function useWizard() {
                 console.log(`adding wizard '${wizard}' for class '${classCurie}' and context '${context}'`)
                 wizardEditors[wizard] = configVarsMain.wizardEditors[wizard]
                 wizardEditors[wizard].template = getContent(configVarsMain.content, wizardEditors[wizard].template)
-                wizardEditors[wizard].iconFig = getIcon(wizardEditors[wizard], configVarsMain)
+                wizardEditors[wizard].iconFig = getIcon(wizardEditors[wizard].icon, configVarsMain)
             }
         }
         // then slot-based wizards
@@ -67,7 +67,7 @@ export function useWizard() {
                         if (wizard in wizardEditors) continue;
                         wizardEditors[wizard] = configVarsMain.wizardEditors[wizard]
                         wizardEditors[wizard].template = getContent(configVarsMain.content, wizardEditors[wizard].template)
-                        wizardEditors[wizard].iconFig = getIcon(wizardEditors[wizard], configVarsMain)
+                        wizardEditors[wizard].iconFig = getIcon(wizardEditors[wizard].icon, configVarsMain)
                     }
                 }
             }
@@ -157,31 +157,6 @@ export function useWizard() {
             if (!findObjectByKey(nodesToSubmit.value, 'node_iri', saved_node.node_iri)) {
                 nodesToSubmit.value.push(saved_node);
             }
-        }
-    }
-
-    function getIcon(wizard, configVarsMain) {
-        if (wizard.icon) {
-            if (wizard.icon.startsWith('mdi-')) {
-                return {
-                    type: 'mdi',
-                    icon: wizard.icon
-                }
-            } else if (wizard.icon.startsWith('content:')) {
-                return {
-                    type: 'svg',
-                    icon: getContent(configVarsMain.content, wizard.icon)
-                }
-            } else {
-                return {
-                    type: 'svg',
-                    icon: wizard.icon
-                }
-            }
-        }
-        return {
-            type: 'mdi',
-            icon: 'mdi-plus-box'
         }
     }
 

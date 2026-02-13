@@ -17,7 +17,7 @@
                 >
             </span>
         </v-card-title>
-        <v-card-subtitle :class="mobile ? 'text-caption' : ''">
+        <v-card-subtitle :class="mobile ? 'text-caption' : ''" >
             Type: <em>{{ toCURIE(record.subtitle, allPrefixes) }}</em> <span v-if="!mobile">&nbsp;</span>
             <span v-if="mobile"><br></span>
             <span v-if="!props.formOpen">
@@ -65,6 +65,12 @@
                             ></v-btn>
                         </template>
                     </v-tooltip>
+                </span>
+                <span v-if="showSpecialButtons">
+                    <span v-for="button in specialButtons">
+                        &nbsp;
+                        <SpecialButton :returnVal="button.returnValue" :config="button.config"></SpecialButton>
+                    </span>
                 </span>
             </span>
         </v-card-subtitle>
@@ -309,9 +315,12 @@ import {
     getNodeShapePropertyWithAnnotations,
     getSubjectQuad,
     getDisplayName,
+    quadsToTripleObject,
+    findBlankNodeLink,
 } from '../modules/utils';
 import { RDF, SHACL } from '@/modules/namespaces';
 import MoreOrLessRecordsViewer from './MoreOrLessRecordsViewer.vue';
+import SpecialButton from '@/components/SpecialButton.vue'
 import { useCompConfig } from '@/composables/useCompConfig';
 import { useDisplay } from 'vuetify'
 const { mobile } = useDisplay()
@@ -367,7 +376,9 @@ const ttlDialog_name = ref('');
 const ttlDialog_type = ref('');
 const ttlDialog_content = ref('');
 const fetchingRecords = ref(false);
-const canEditClass = ref(false)
+const canEditClass = ref(false);
+const showSpecialButtons = ref(false);
+const specialButtons = reactive({});
 
 const emit = defineEmits(['namedNodeSelected']);
 function selectNamedNode(recordClass, recordPID) {
@@ -465,9 +476,11 @@ async function updateRecord(fetchData, from) {
         BlankNode: {},
         NamedNode: {},
     };
-    for (const rQ of record.relatedQuads) {
-        await addRecordProperty(rQ, fetchData);
-    }
+    const promises = record.relatedQuads.map(rQ =>
+        addRecordProperty(rQ, fetchData)
+    )
+    await Promise.all(promises)
+    const end = performance.now()
     record.displayLabel = getRecordDisplayLabel(record.quad.subject, rdfDS, allPrefixes, configVarsMain)    
     // Now we have all record.triples, and we need to get displaylabels for blanknodes
     for (const triplePred in record.triples['BlankNode']) {
@@ -480,6 +493,22 @@ async function updateRecord(fetchData, from) {
             let pL = getPrefLabel(tripNode, rdfDS, allPrefixes)
             record.triples['BlankNode'][triplePred].displayLabels.push(dL)
             record.triples['BlankNode'][triplePred].prefLabels.push(pL)
+        }
+    }
+    // Now let's check for clickable data
+    if (componentConfig?.specialButtons && typeof componentConfig?.specialButtons === 'object'
+        && Object.keys(componentConfig?.specialButtons).length > 0
+    ) {
+        for (const sB of Object.keys(componentConfig?.specialButtons)) {
+            let foundSB = findBlankNodeLink(record, componentConfig.specialButtons[sB], allPrefixes)
+            if (foundSB) {
+                specialButtons[sB] = {};
+                specialButtons[sB].returnValue = foundSB;
+                specialButtons[sB].config = componentConfig.specialButtons[sB];
+            }
+        }
+        if (Object.keys(specialButtons).length) {
+            showSpecialButtons.value = true;
         }
     }
 }
@@ -503,6 +532,7 @@ async function addRecordProperty(quad, fetchData) {
             displayLabels: [],
             prefLabels: [],
             keyPropertyRoles: [],
+            relatedTriples: [],
         };
     }
     let kpr = null
@@ -511,6 +541,8 @@ async function addRecordProperty(quad, fetchData) {
         let keyPropertyShape = getNodeShapePropertyWithAnnotations(ps[SHACL.class.value], shapesDS, {"dash:propertyRole": "dash:KeyInfoRole"}, allPrefixes)
         let keyPropertyRole = keyPropertyShape ? keyPropertyShape[SHACL.path.value] : null
         let bnRelatedQuads = rdfDS.getSubjectTriples(quad.object);
+        let relatedTriples = quadsToTripleObject(bnRelatedQuads, allPrefixes)
+        record.triples[termType][quad.predicate.value]['relatedTriples'].push(relatedTriples)
         for (const bnQuad of bnRelatedQuads) {
             if (bnQuad.object.termType === 'NamedNode') {
                 console.log("Also fetching blank node object record:")
