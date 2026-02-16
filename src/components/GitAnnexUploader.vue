@@ -80,8 +80,11 @@ const fileData = ref({})
 const fileInput = ref(null)
 const tokenWarning = inject('tokenWarning');
 const baseUrl = props.config.base_url
-const targetUuid = props.config.annex_uuid
 const clientUuid = props.config.client_uuid
+const targetUuid = props.config.annex_uuid
+const showTargetSelector = ref(false)
+const selectedTargetUuid = ref(null)
+const targetUuidItems = ref([])
 
 const isUploading = ref(false)
 const uploadSuccess = ref(false)
@@ -90,9 +93,25 @@ const uploadFailureError = ref({})
 const errorDialog = ref(false)
 
 onMounted(() => {
+    console.log("GITANNEXUPLOADER")
     if (token.value !== null && token.value !== 'null') {
         tokenExists.value = true;
     }
+    if (typeof targetUuid == "object") {
+        showTargetSelector.value = true;
+        targetUuidItems.value = Object.keys(targetUuid).map((targetName) => {
+            return {
+                title: targetName,
+                value: targetUuid[targetName],
+            };
+        }).sort((a,b) =>{
+            return a.title.localeCompare(b.title)
+        });
+    } else {
+        selectedTargetUuid.value = targetUuid;
+    }
+    console.log(selectedTargetUuid.value)
+    console.log(targetUuidItems.value)
 })
 
 // Format file sizes

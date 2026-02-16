@@ -27,8 +27,7 @@
 
 <script setup>
 import { onBeforeMount, ref, inject, onMounted } from 'vue';
-import { toIRI, toCURIE } from 'shacl-tulip';
-import { includeClass,  getDisplayName} from '@/modules/utils';
+import { includeClass,  getDisplayName, toIRI, toCURIE } from '@/modules/utils';
 const props = defineProps({
     textVal: String,
     prefLabel: String,

@@ -119,8 +119,8 @@
 
 <script setup>
 import { reactive, onBeforeMount, inject, onUpdated } from 'vue';
-import { toCURIE } from 'shacl-tulip';
-import { makeReadable, nameOrCURIE, getPrefLabel, hasConfigDisplayLabel, getConfigDisplayLabel, getSubjectQuad, getPidQuad, getRecordDisplayLabel} from '../modules/utils';
+import { toCURIE } from '@/modules/utils';
+import { makeReadable, nameOrCURIE, getPrefLabel, hasConfigDisplayLabel, getConfigDisplayLabel, getSubjectQuad, getPidQuad, getRecordDisplayLabel} from '@/modules/utils';
 import { RDF, SHACL} from '@/modules/namespaces';
 import { useDisplay } from 'vuetify'
 const { mobile } = useDisplay()

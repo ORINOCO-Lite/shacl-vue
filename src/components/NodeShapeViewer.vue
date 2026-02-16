@@ -300,7 +300,6 @@ import {
     provide,
     computed,
 } from 'vue';
-import { toCURIE, toIRI } from 'shacl-tulip';
 import {
     makeReadable,
     getPrefLabel,
@@ -317,9 +316,11 @@ import {
     getDisplayName,
     quadsToTripleObject,
     findBlankNodeLink,
-} from '../modules/utils';
+    toIRI,
+    toCURIE,
+} from '@/modules/utils';
 import { RDF, SHACL } from '@/modules/namespaces';
-import MoreOrLessRecordsViewer from './MoreOrLessRecordsViewer.vue';
+import MoreOrLessRecordsViewer from '@/components/MoreOrLessRecordsViewer.vue';
 import SpecialButton from '@/components/SpecialButton.vue'
 import { useCompConfig } from '@/composables/useCompConfig';
 import { useDisplay } from 'vuetify'

@@ -308,7 +308,7 @@ import {
     nextTick,
     reactive
 } from 'vue';
-import { useRules } from '../composables/rules';
+import { useRules } from '@/composables/rules';
 import { DataFactory } from 'n3';
 import { SHACL, RDF, SKOS } from '@/modules/namespaces';
 import {
@@ -321,9 +321,10 @@ import {
     snakeToCamel,
     getDisplayName,
     transformSearchFieldName,
-} from '../modules/utils';
-import { toCURIE, toIRI } from 'shacl-tulip';
-import { useRegisterRef } from '../composables/refregister';
+    toCURIE,
+    toIRI,
+} from '@/modules/utils';
+import { useRegisterRef } from '@/composables/refregister';
 import { useBaseInput } from '@/composables/base';
 import { debounce } from 'lodash-es';
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller';

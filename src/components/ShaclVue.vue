@@ -499,8 +499,9 @@ import {
     transformSearchFieldName,
     updateShapesDataset,
     updatePropertyGroups,
-} from '../modules/utils';
-import { toCURIE, toIRI } from 'shacl-tulip';
+    toCURIE,
+    toIRI,
+} from '@/modules/utils';
 import editorMatchers from '@/modules/editors';
 // Leave the viewerMatchers import here to load viewers, even if unused in this component
 import viewerMatchers from '@/modules/viewers';

@@ -51,13 +51,12 @@
 
 <script setup>
 import { computed, inject, ref, toRaw, onBeforeMount } from 'vue';
-import { useRules } from '../composables/rules';
-import { useRegisterRef } from '../composables/refregister';
+import { useRules } from '@/composables/rules';
+import { useRegisterRef } from '@/composables/refregister';
 import { useBaseInput } from '@/composables/base';
-import { toCURIE } from 'shacl-tulip';
 import { RDF } from '@/modules/namespaces';
 import { DataFactory } from 'n3';
-import { getDisplayName } from '@/modules/utils'
+import { getDisplayName, toCURIE} from '@/modules/utils'
 import InstancesSelectEditor from '@/components/InstancesSelectEditor.vue'
 const { namedNode } = DataFactory;
 

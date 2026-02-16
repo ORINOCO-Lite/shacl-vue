@@ -4,6 +4,8 @@ import { DataFactory, Writer } from 'n3';
 import { toRaw } from 'vue';
 const { namedNode, blankNode} = DataFactory;
 
+export { toCURIE, toIRI } from 'shacl-tulip';
+
 export function isAbsoluteIRI(str) {
     if (!str) return false
     return /^[A-Za-z][A-Za-z0-9+.-]*:/.test(str)

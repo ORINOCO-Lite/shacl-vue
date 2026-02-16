@@ -7,7 +7,7 @@
         hide-details="auto"
     >
         <v-row no-gutters align="stretch" class="fill-height">
-            <v-col cols="11">
+            <v-col cols="9">
                 <InstancesSelectEditor 
                     v-model="subValues.selectedInstance"
                     :property_shape="computedPropertyShape"
@@ -33,12 +33,11 @@
 
 <script setup>
 import { inject, ref, onBeforeMount, onMounted, reactive, onBeforeUnmount, provide} from 'vue';
-import { useRules } from '../composables/rules';
-import { useRegisterRef } from '../composables/refregister';
+import { useRules } from '@/composables/rules';
+import { useRegisterRef } from '@/composables/refregister';
 import { useBaseInput } from '@/composables/base';
-import { toCURIE, toIRI } from 'shacl-tulip';
 import { RDF } from '@/modules/namespaces';
-import { fillStringTemplate, findObjectByKey, getContent } from '@/modules/utils';
+import { fillStringTemplate, findObjectByKey, getContent, toCURIE, toIRI } from '@/modules/utils';
 import { DataFactory } from 'n3';
 import InstancesSelectEditor from '@/components/InstancesSelectEditor.vue'
 import GitAnnexUploader from '@/components/GitAnnexUploader.vue'

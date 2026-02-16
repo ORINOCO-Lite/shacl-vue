@@ -145,14 +145,14 @@ import {
     nextTick,
     watch,
 } from 'vue';
-import { SHACL } from '../modules/namespaces';
+import { SHACL } from '@/modules/namespaces';
 import {
     addCodeTagsToText,
     getDisplayName,
     findObjectByKey,
     getNotes,
-} from '../modules/utils';
-import { toCURIE } from 'shacl-tulip';
+    toCURIE
+} from '@/modules/utils';
 import { useDisplay } from 'vuetify'
 const { mobile } = useDisplay()
 

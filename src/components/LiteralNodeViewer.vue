@@ -19,7 +19,7 @@
 
 <script setup>
 import { onMounted, onBeforeMount, ref, inject, computed} from 'vue';
-import { toIRI } from 'shacl-tulip';
+import { toIRI } from '@/modules/utils';
 const props = defineProps({
     textVal: String,
     wrap: {

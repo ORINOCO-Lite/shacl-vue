@@ -208,10 +208,9 @@ import {
     watch,
     toRaw,
 } from 'vue';
-import { SHACL, DLCO } from '../modules/namespaces';
-import { useRules } from '../composables/rules';
-import { nameOrCURIE, addCodeTagsToText, isObject, getNotes } from '../modules/utils';
-import { toCURIE, toIRI } from 'shacl-tulip';
+import { SHACL, DLCO } from '@/modules/namespaces';
+import { useRules } from '@/composables/rules';
+import { nameOrCURIE, addCodeTagsToText, isObject, getNotes, toCURIE, toIRI} from '@/modules/utils';
 import { useCompConfig } from '@/composables/useCompConfig';
 
 // ----- //
