@@ -394,7 +394,7 @@ onBeforeMount(async () => {
     ) {
         showCopyLink.value = true;
     }
-    canEditClass.value = configVarsMain.noEditClasses.indexOf(props.classIRI) < 0 ? true : false
+    canEditClass.value = configVarsMain.noEditClasses.indexOf(toCURIE(props.classIRI, allPrefixes)) < 0 ? true : false
     fetchingRecords.value = true;
     await updateRecord(true);
     fetchingRecords.value = false;

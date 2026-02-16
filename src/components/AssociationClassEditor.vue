@@ -167,7 +167,7 @@ onBeforeMount(() => {
     keyPropertyClass.value = keyPropertyShape.value[SHACL.class.value]
     keyPropertyUID.value = keyPropertyShape.value[SHACL.path.value]
     keyPropertyIDX.value = 0
-    canEditClass.value = configVarsMain.noEditClasses.indexOf(associationClass.value) < 0 ? true : false
+    canEditClass.value = configVarsMain.noEditClasses.indexOf(toCURIE(associationClass.value, allPrefixes)) < 0 ? true : false
 
     if (props.modelValue) {
         // If props.modelValue already exist before mount, we assume the association class record

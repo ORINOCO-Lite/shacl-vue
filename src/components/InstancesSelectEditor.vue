@@ -251,7 +251,7 @@
                                         <v-btn
                                             v-if=" !nsHasPID || 
                                                 (configVarsMain.allowEditInstances === true ||
-                                                configVarsMain.allowEditInstances.indexOf(item.props.itemQuad.object.value) >= 0)
+                                                configVarsMain.allowEditInstances.indexOf(toCURIE(item.props.itemQuad.object.value, allPrefixes)) >= 0)
                                             "
                                             icon="mdi-pencil"
                                             variant="text"
@@ -282,7 +282,7 @@
             v-if="
                 subValues?.selectedInstance && ( !nsHasPID || 
                 (configVarsMain.allowEditInstances === true ||
-                configVarsMain.allowEditInstances.indexOf(subValues?.selectedInstance?.props.itemQuad.object.value) >= 0))
+                configVarsMain.allowEditInstances.indexOf(toCURIE(subValues?.selectedInstance?.props.itemQuad.object.value, allPrefixes)) >= 0))
             "
             style="margin-left: 0.5em"
             rounded="0"
@@ -417,7 +417,7 @@ if (allclass_array.length > 1) {
     // that is intended for the whole app, and not this particular component
     
     propClassList = allclass_array.map((cl) => {
-        if (includeClass(cl, showHideConfig.value, allPrefixes) && configVarsMain.noEditClasses.indexOf(cl) < 0) {
+        if (includeClass(cl, showHideConfig.value, allPrefixes) && configVarsMain.noEditClasses.indexOf(toCURIE(cl, allPrefixes)) < 0) {
             return {
                 title: getDisplayName(cl, configVarsMain, allPrefixes, shapesDS.data.nodeShapes[cl]),
                 value: cl,
@@ -463,7 +463,7 @@ function onSelectAllFilterItems() {
 
 
 const canEditClass = ref(true)
-canEditClass.value = configVarsMain.noEditClasses.indexOf(propClass.value) < 0 ? true : false
+canEditClass.value = configVarsMain.noEditClasses.indexOf(toCURIE(propClass.value, allPrefixes)) < 0 ? true : false
 const { rules } = useRules(localPropertyShape.value);
 const inputId = `input-${Date.now()}`;
 const { fieldRef } = useRegisterRef(inputId, props);

@@ -965,7 +965,7 @@ const filteredNodeShapeNames = computed(() => {
     for (var n of names) {
         // First get IRI and prefix
         var n_iri = shapesDS.data.nodeShapeNames[n]
-        if (includeClass(n_iri, configVarsMain, allPrefixes) && configVarsMain.noEditClasses.indexOf(n_iri) < 0) {
+        if (includeClass(n_iri, configVarsMain, allPrefixes) && configVarsMain.noEditClasses.indexOf(toCURIE(n_iri, allPrefixes)) < 0) {
             shapeNames.push(n);
         }
     }
@@ -999,7 +999,7 @@ const noEditClassList = computed(() => {
         // First get IRI and prefix
         var n_iri = shapesDS.data.nodeShapeNames[n]
         if (includeClass(n_iri, configVarsMain, allPrefixes) &&
-            configVarsMain.noEditClasses?.indexOf(n_iri) >= 0) {
+            configVarsMain.noEditClasses?.indexOf(toCURIE(n_iri, allPrefixes)) >= 0) {
             shapeNames.push(n);
         }
     }
@@ -1051,7 +1051,7 @@ async function selectType(IRI, fromUser, fromBackButton) {
     textMatchType.value = 'partial';
     selectedIRI.value = IRI;
     selectedShape.value = shapesDS.data.nodeShapes[IRI];
-    canEditClass.value = configVarsMain.noEditClasses.indexOf(IRI) < 0 ? true : false
+    canEditClass.value = configVarsMain.noEditClasses.indexOf(toCURIE(IRI, allPrefixes)) < 0 ? true : false
     if (config.value.use_service) {
         classRecordsLoading.value = true;
         // First fetch rdf data from configured service
@@ -1184,7 +1184,7 @@ async function setViewFromQuery() {
                 // - call editInstanceItem(instance)
                 // If edit AND NOT instance_pid, just open the empty form
                 if (edit) {
-                    if (configVarsMain.noEditClasses.indexOf(nodeShapeIRI) >= 0) {
+                    if (configVarsMain.noEditClasses.indexOf(toCURIE(nodeShapeIRI, allPrefixes)) >= 0) {
                         updateURL(nodeShapeIRI, false)
                     } else {
                         if (instanceIRI) {
@@ -1216,8 +1216,9 @@ async function setViewFromQuery() {
 
 function getClassIcon(class_iri) {
     if (configVarsMain.classIcons) {
-        if (configVarsMain.classIcons[class_iri]) {
-            return configVarsMain.classIcons[class_iri];
+        let classCurie = toCURIE(class_iri, allPrefixes)
+        if (configVarsMain.classIcons[classCurie]) {
+            return configVarsMain.classIcons[classCurie];
         }
     }
     return 'mdi-circle-outline';

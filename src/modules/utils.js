@@ -691,6 +691,7 @@ export function fillStringTemplate(template, params) {
 }
 
 export function includeClass(class_iri, showHide_config, allPrefixes) {
+    var classCurie = toCURIE(class_iri, allPrefixes)
     var class_prefix = toCURIE(class_iri, allPrefixes, 'parts').prefix
     // Assume we include class by default
     var include = true;
@@ -702,7 +703,7 @@ export function includeClass(class_iri, showHide_config, allPrefixes) {
             showHide_config.showClasses?.length != 0 ||
             showHide_config.showClassesWithPrefix?.length != 0
         ) && (
-            showHide_config.showClasses?.indexOf(class_iri) < 0 &&
+            showHide_config.showClasses?.indexOf(classCurie) < 0 &&
             showHide_config.showClassesWithPrefix?.indexOf(class_prefix) < 0
         )
     ) {
@@ -713,7 +714,7 @@ export function includeClass(class_iri, showHide_config, allPrefixes) {
     // it if it isn't found in hideClasses(...) arrays
     if (
         include &&
-        showHide_config.hideClasses?.indexOf(class_iri) < 0 &&
+        showHide_config.hideClasses?.indexOf(classCurie) < 0 &&
         showHide_config.hideClassesWithPrefix?.indexOf(class_prefix) < 0
     ) {
         return true
