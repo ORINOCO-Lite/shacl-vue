@@ -55,11 +55,11 @@
 </template>
 
 <script setup>
-import { inject, computed, ref, watch, onMounted } from 'vue';
-import { useRules } from '../composables/rules';
-import { isObject } from '../modules/utils';
-import { toCURIE } from 'shacl-tulip';
-import { useRegisterRef } from '../composables/refregister';
+import { inject, computed, ref, watch, onMounted, onBeforeMount} from 'vue';
+import { useRules } from '@/composables/rules';
+import { isObject, isCURIE } from '@/modules/utils';
+import { toCURIE, toIRI} from 'shacl-tulip';
+import { useRegisterRef } from '@/composables/refregister';
 import { useBaseInput } from '@/composables/base';
 import { useCompConfig } from '@/composables/useCompConfig';
 
@@ -93,19 +93,35 @@ const { subValues, internalValue } = useBaseInput(
     valueCombiner
 );
 const {componentName, componentConfig} = useCompConfig(configVarsMain)
-if (componentConfig && isObject(componentConfig) && Object.keys(componentConfig).includes(props.triple_uid)) {
-    enterCURIE.value = componentConfig[props.triple_uid];
-} else if (componentConfig && componentConfig.default ) {
-    enterCURIE.value = componentConfig.default == 'curie';
-} else {
-    enterCURIE.value = true;
-}
 
 // ----------------- //
 // Lifecycle methods //
 // ----------------- //
 
-onMounted(() => {});
+onBeforeMount(() => {
+    if (componentConfig && isObject(componentConfig) && Object.keys(componentConfig).includes(props.triple_uid)) {
+        enterCURIE.value = componentConfig[props.triple_uid];
+    } else if (componentConfig && componentConfig.default ) {
+        enterCURIE.value = componentConfig.default == 'curie';
+    } else {
+        enterCURIE.value = true;
+    }
+
+    if (props.modelValue) {
+        var curieparts = toCURIE(props.modelValue, allPrefixes, 'parts');
+        var iC = isCURIE(props.modelValue, allPrefixes, true);
+        if (iC) {
+            enterCURIE.value = true;
+            subValues.value.uri_prefix = iC.prefix;
+            subValues.value.uri_path = iC.reference;
+            subValues.value.uri_text = toIRI(`${iC.prefix}:${iC.reference}`, allPrefixes)
+
+        } else {
+            enterCURIE.value = false;
+            subValues.value.uri_text = props.modelValue;
+        }
+    }
+});
 
 // ------------------- //
 // Computed properties //

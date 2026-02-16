@@ -4,6 +4,36 @@ import { DataFactory, Writer } from 'n3';
 import { toRaw } from 'vue';
 const { namedNode, blankNode} = DataFactory;
 
+export function isAbsoluteIRI(str) {
+    if (!str) return false
+    return /^[A-Za-z][A-Za-z0-9+.-]*:/.test(str)
+}
+
+export function isCURIE(str, prefixes, return_parts=false) {
+    if (!str || !prefixes) return false
+    const match = str.match(/^([^:]+):(.+)$/)
+    if (!match) return false
+    const prefix = match[1]
+    const reference = match[2]
+    // Must be a known prefix
+    if (!(prefix in prefixes)) return false
+    // Prevent matching full IRIs like http://...
+    if (reference.startsWith('//')) return false
+    if (return_parts) {
+        return {
+            "prefix": prefix,
+            "reference": reference,
+        }
+    }
+    return true
+}
+
+export function getUriType(str, prefixes) {
+    if (isCURIE(str, prefixes)) return "CURIE"
+    if (isAbsoluteIRI(str)) return "IRI"
+    return "UNKNOWN"
+}
+
 export function nameOrCURIE(shape, prefixes, readable = false) {
     if (shape.hasOwnProperty(SHACL.name.value)) {
         return shape[SHACL.name.value];
