@@ -210,7 +210,7 @@ import {
 } from 'vue';
 import { SHACL, DLCO } from '@/modules/namespaces';
 import { useRules } from '@/composables/rules';
-import { nameOrCURIE, addCodeTagsToText, isObject, getNotes, toCURIE, toIRI} from '@/modules/utils';
+import { nameOrCURIE, addCodeTagsToText, isObject, getNotes, toCURIE, toIRI, fillStringTemplate} from '@/modules/utils';
 import { useCompConfig } from '@/composables/useCompConfig';
 
 // ----- //
@@ -300,7 +300,7 @@ onMounted(() => {
     if (
         my_uid.value == ID_IRI.value &&
         isObject(configVarsMain.idAutogenerate) &&
-        Object.keys(configVarsMain.idAutogenerate).includes(localNodeUid.value)
+        Object.keys(configVarsMain.idAutogenerate).includes(toCURIE(localNodeUid.value, allPrefixes))
     ) {
         // if the object value is already in formdata, dont autogenerate and don't add,
         // but still disable the field
@@ -314,26 +314,15 @@ onMounted(() => {
             if (
                 configVarsMain.idAutogenerateOverride === true ||
                 (Array.isArray(configVarsMain.idAutogenerateOverride) &&
-                configVarsMain.idAutogenerateOverride.includes(localNodeUid.value))
+                configVarsMain.idAutogenerateOverride.includes(toCURIE(localNodeUid.value, allPrefixes)))
             ) {
                 showIDoverride.value = true;
             }
             return;
         } else {
-            var new_id_val = '';
-            var cfg = configVarsMain.idAutogenerate[localNodeUid.value];
-            // Start with prefix uri
-            if (cfg['id_autogenerate_prefix']) {
-                if (allPrefixes.hasOwnProperty(cfg['id_autogenerate_prefix'])) {
-                    new_id_val += allPrefixes[cfg['id_autogenerate_prefix']];
-                }
-            }
-            // Then prepend
-            if (cfg['id_autogenerate_prepend']) {
-                new_id_val += cfg['id_autogenerate_prepend'];
-            }
-            // then random uuid
-            new_id_val += crypto.randomUUID();
+            // var new_id_val = '';
+            var id_template = configVarsMain.idAutogenerate[toCURIE(localNodeUid.value, allPrefixes)];
+            let new_id_val = fillStringTemplate(id_template, {})
             // then add to formdata
             formData.addPredicate(
                 localNodeUid.value,
@@ -347,7 +336,7 @@ onMounted(() => {
         if (
             configVarsMain.idAutogenerateOverride === true ||
             (Array.isArray(configVarsMain.idAutogenerateOverride) &&
-            configVarsMain.idAutogenerateOverride.includes(localNodeUid.value))
+            configVarsMain.idAutogenerateOverride.includes(toCURIE(localNodeUid.value, allPrefixes)))
         ) {
             showIDoverride.value = true;
         }
