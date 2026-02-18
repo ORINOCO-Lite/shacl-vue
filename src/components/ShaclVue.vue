@@ -14,9 +14,8 @@
                             @click="drawer = !drawer"
                             theme="dark"
                             :color="configVarsMain.appTheme.panel_color"
-                            >
-                        </v-btn>
-
+                        ></v-btn>
+                        <!-- Class selection pane -->
                         <v-navigation-drawer
                             theme="dark"
                             :color="configVarsMain.appTheme.panel_color"
@@ -32,16 +31,36 @@
                                 :disabled="formOpen"
                                 v-model:selected="selectedItem"
                             >
-                                <v-list-item value="data"
-                                    ><h4>Data Types</h4></v-list-item
-                                >
+                                <!-- Heading -->
+                                <v-list-item value="data"><h4>Data Types</h4></v-list-item>
+                                <!-- Items: priority -->
+                                <span v-if="configVarsMain.priorityClasses?.length">
+                                    <v-list-item
+                                        v-for="node in configVarsMain.priorityClasses"
+                                        :prepend-icon="node.icon ? node.icon : getClassIcon(toIRI(node.class, allPrefixes))"
+                                        :title="node.title ? node.title :
+                                            getDisplayName(
+                                                toIRI(node.class, allPrefixes),
+                                                configVarsMain,
+                                                allPrefixes,
+                                                shapesDS.data.nodeShapes[toIRI(node.class, allPrefixes)]
+                                            )
+                                        "
+                                        :value="toIRI(node.class, allPrefixes)"
+                                        @click="selectType(toIRI(node.class, allPrefixes), true)"
+                                    >
+                                    </v-list-item>
+                                    <v-divider
+                                        opacity=".7"
+                                        thickness="2"
+                                        gradient
+                                        style="margin-top: 1em; margin-bottom: 1em"
+                                    ></v-divider>
+                                </span>
+                                <!-- Items: all that should be shown and can be edited -->
                                 <v-list-item
                                     v-for="node in orderedNodeShapeNames"
-                                    :prepend-icon="
-                                        getClassIcon(
-                                            shapesDS.data.nodeShapeNames[node]
-                                        )
-                                    "
+                                    :prepend-icon="getClassIcon(shapesDS.data.nodeShapeNames[node])"
                                     :title="
                                         getDisplayName(
                                             shapesDS.data.nodeShapeNames[node],
@@ -51,14 +70,9 @@
                                         )
                                     "
                                     :value="shapesDS.data.nodeShapeNames[node]"
-                                    @click="
-                                        selectType(
-                                            shapesDS.data.nodeShapeNames[node],
-                                            true
-                                        )
-                                    "
-                                >
-                                </v-list-item>
+                                    @click="selectType(shapesDS.data.nodeShapeNames[node], true)"
+                                ></v-list-item>
+                                <!-- Items: read only -->
                                 <span v-if="noEditClassList.length">
                                     <v-divider
                                         opacity=".7"
@@ -70,11 +84,7 @@
                                     </v-divider>
                                     <v-list-item
                                         v-for="node in noEditClassList"
-                                        :prepend-icon="
-                                            getClassIcon(
-                                                shapesDS.data.nodeShapeNames[node]
-                                            )
-                                        "
+                                        :prepend-icon="getClassIcon(shapesDS.data.nodeShapeNames[node])"
                                         :title="
                                             getDisplayName(
                                                 shapesDS.data.nodeShapeNames[node],
@@ -84,12 +94,7 @@
                                             )
                                         "
                                         :value="shapesDS.data.nodeShapeNames[node]"
-                                        @click="
-                                            selectType(
-                                                shapesDS.data.nodeShapeNames[node],
-                                                true
-                                            )
-                                        "
+                                        @click="selectType(shapesDS.data.nodeShapeNames[node], true)"
                                     >
                                     </v-list-item>
                                 </span>
@@ -636,6 +641,7 @@ const ID_IRI = ref('');
 const canEditClass = ref(true)
 const frontPageHTML = ref(null)
 const searchableFields = [];
+const priorityClassList = ref([])
 watch(
     configFetched,
     async (newValue) => {
@@ -696,7 +702,7 @@ watch(
 provide('config', config);
 provide('configFetched', configFetched);
 provide('configError', configError);
-provide('configVarsMain', configVarsMain); // for ShaclVue and AppHeader components, mainly
+provide('configVarsMain', configVarsMain);
 provide('ID_IRI', ID_IRI);
 provide('rdfDS', rdfDS);
 provide('shapesDS', shapesDS);
@@ -763,7 +769,7 @@ watch(
             });
             console.log('ALL PREFIXES READY');
             console.log(toRaw(allPrefixes));
-
+            priorityClassList.value = configVarsMain.priorityClasses?.map(item => toIRI(item.class, allPrefixes))
             if (
                 configVarsMain.useService &&
                 config.value.hasOwnProperty('service_fetch_before') &&
@@ -972,8 +978,21 @@ const filteredNodeShapeNames = computed(() => {
     return shapeNames;
 });
 
+const priorityFilteredNodeShapeNames = computed(() => {
+    var names = filteredNodeShapeNames.value;
+    var shapeNames = [];
+    for (var n of names) {
+        var n_iri = shapesDS.data.nodeShapeNames[n]
+
+        if (!priorityClassList.value.includes(n_iri)) {
+            shapeNames.push(n);
+        }
+    }
+    return shapeNames;
+})
+
 const orderedNodeShapeNames = computed(() => {
-    return filteredNodeShapeNames.value.sort((a, b) =>
+    return priorityFilteredNodeShapeNames.value.sort((a, b) =>
         getDisplayName(
             shapesDS.data.nodeShapeNames[a],
             configVarsMain,

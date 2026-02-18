@@ -20,6 +20,7 @@ const mainVarsToLoad = {
     show_classes_with_prefix: [],
     hide_classes: [],
     hide_classes_with_prefix: [],
+    priority_classes: [],
     no_edit_classes: [],
     allow_edit_instances: [],
     allow_copy_record_urls: true,
