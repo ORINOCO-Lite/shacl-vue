@@ -953,3 +953,15 @@ export function getIcon(iconText, configVarsMain, defaultIcon={type: 'mdi',icon:
         return defaultIcon
     }
 }
+
+export function updateURL(IRI, edit, pid, allPrefixes) {
+    var curie = toCURIE(IRI, allPrefixes);
+    var queryParams = `?${encodeURIComponent('sh:NodeShape')}=${encodeURIComponent(curie)}`;
+    if (pid) {
+        queryParams += `&pid=${encodeURIComponent(pid)}`;
+    }
+    if (edit) {
+        queryParams += '&edit=true';
+    }
+    history.replaceState(null, '', window.location.pathname + queryParams);
+}

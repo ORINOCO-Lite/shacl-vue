@@ -5,6 +5,7 @@
             <span v-if="page_ready">
                 <v-card>
                     <v-layout>
+                        <!-- Button to open/close class selection pane -->
                         <v-btn
                             v-if="mobile"
                             :disabled="formOpen"
@@ -100,30 +101,30 @@
                                 </span>
                             </v-list>
                         </v-navigation-drawer>
+                        <!-- The main view containing records and forms -->
                         <v-main
                             ref="mainContent"
                             style="height: 90vh; overflow-y: auto"
                         >
+                            <!-- Everything is inside one container and one row -->
                             <v-container fluid>
                                 <v-row>
+                                    <!-- Column for records -->
                                     <v-col
                                         v-show="formOpen ? false : true"
                                         class="transition-all"
-                                        :class="
-                                            formOpen ? 'opacity-column' : ''
-                                        "
+                                        :class="formOpen ? 'opacity-column' : ''"
                                     >
+                                        <!-- Show records if a class is selected -->
                                         <span v-if="selectedIRI">
+                                            <!-- Class header -->
                                             <h2
                                                 class="mx-4 mb-4 truncate-heading"
                                                 @mouseenter="headingHover = true"
                                                 @mouseleave="headingHover = false"
                                             >
-                                                <span
-                                                    v-if="
-                                                        internalHistory.length
-                                                    "
-                                                >
+                                                <!-- In-app back button -->
+                                                <span v-if="internalHistory.length">
                                                     <v-btn
                                                         icon="mdi-chevron-left"
                                                         density="compact"
@@ -133,7 +134,7 @@
                                                     ></v-btn>
                                                     &nbsp;
                                                 </span>
-
+                                                <!-- Class display name -->
                                                 <span class="display-text-wrapper">
                                                     {{
                                                         getDisplayName(
@@ -159,8 +160,8 @@
                                                     >
                                                     </v-progress-linear>
                                                 </span>
+                                                <!-- 'Create new record' button -->
                                                 &nbsp;&nbsp;
-
                                                 <v-tooltip text="Create a new record" location="top">
                                                     <template v-slot:activator="{ props }">
                                                         <v-btn
@@ -168,95 +169,72 @@
                                                             icon="mdi-plus"
                                                             size="x-small"
                                                             variant="tonal"
-                                                            @click="addInstanceItem()"
+                                                            @click="addInstanceItem(selectedIRI)"
                                                             :disabled="openForms.length > 0 || !canEditClass"
                                                         ></v-btn>
                                                     </template>
                                                 </v-tooltip>
+                                                <!-- Wizard buttons -->
                                                 <span v-if="showWizardGroup(configVarsMain, '_class', selectedIRI, allPrefixes, shapesDS)">
                                                     <WizardGroup :context="'_class'" :classUri="selectedIRI"></WizardGroup>
                                                 </span>
                                             </h2>
-
-                                            <p
-                                                class="mx-4 mb-4"
-                                                v-html="formattedDescription"
-                                            ></p>
-
+                                            <!-- Class description paragraph -->
+                                            <p class="mx-4 mb-4" v-html="formattedDescription"></p>
+                                            <!------------->
+                                            <!-- RECORDS -->
+                                            <!------------->
                                             <span v-if="classRecordsLoading">
-                                                <v-skeleton-loader
-                                                    type="list-item-avatar"
-                                                ></v-skeleton-loader>
+                                                <v-skeleton-loader type="list-item-avatar"></v-skeleton-loader>
                                             </span>
                                             <span v-else>
-                                                <div
-                                                    v-if="
-                                                        instanceItemsComp.length
-                                                    "
-                                                >
-                                                    <v-row
-                                                        v-if="
-                                                            instanceItemsComp.length
-                                                        "
-                                                    >
+                                                <div v-if="instanceItemsComp.length">
+                                                    <v-row v-if="instanceItemsComp.length">
                                                         <v-col :cols="mobile ? 12 : 8">
                                                             <v-text-field
-                                                                v-model="
-                                                                    searchText
-                                                                "
+                                                                v-model="searchText"
                                                                 density="compact"
                                                                 variant="outlined"
                                                                 :label="`Enter at least ${configVarsMain.serviceConstrainedSearch.min_characters} characters to search all records`"
                                                                 hide-details="auto"
-                                                                style="
-                                                                    margin: 1em;
-                                                                "
-                                                                :disabled="
-                                                                    openForms.length >
-                                                                    0
-                                                                "
+                                                                style="margin: 1em;"
+                                                                :disabled="openForms.length > 0"
                                                                 @update:modelValue="onUserTyping"
                                                                 :class="mobile ? 'mobile-scaled' : '' "
                                                             >
-                                                                <template
-                                                                    v-slot:append-inner
-                                                                >
+                                                                <template v-slot:append-inner>
                                                                     <v-icon
-                                                                        v-if="
-                                                                            searchText
-                                                                        "
+                                                                        v-if="searchText"
                                                                         class="mr-2"
-                                                                        @click.stop="
-                                                                            clearField()
-                                                                        "
+                                                                        @click.stop="clearField()"
                                                                         @mousedown.stop.prevent
                                                                     >
                                                                         mdi-close-circle
                                                                     </v-icon>
                                                                 </template>
-                                                                <template
-                                                                    #append
-                                                                >
-                                                                <span v-if="mobile">
-                                                                    <v-btn
-                                                                        variant="outlined"
-                                                                        @click="toggleOrder"
-                                                                        :icon="orderIcon"
-                                                                        :disabled="openForms.length >0"
-                                                                    ></v-btn>
-                                                                </span>
-                                                                <span v-else>
-                                                                    <v-btn
-                                                                        variant="outlined"
-                                                                        @click="toggleOrder"
-                                                                        :append-icon="orderIcon"
-                                                                        :disabled="openForms.length >0"
-                                                                    >Order</v-btn>
-                                                                </span>
+                                                                <template #append>
+                                                                    <span v-if="mobile">
+                                                                        <v-btn
+                                                                            variant="outlined"
+                                                                            @click="toggleOrder"
+                                                                            :icon="orderIcon"
+                                                                            :disabled="openForms.length > 0"
+                                                                        ></v-btn>
+                                                                    </span>
+                                                                    <span v-else>
+                                                                        <v-btn
+                                                                            variant="outlined"
+                                                                            @click="toggleOrder"
+                                                                            :append-icon="orderIcon"
+                                                                            :disabled="openForms.length > 0"
+                                                                        >
+                                                                            Order
+                                                                        </v-btn>
+                                                                    </span>
                                                                 </template>
                                                             </v-text-field>
                                                         </v-col>
-                                                        <v-col v-if="!mobile"> </v-col>
+                                                        <v-col v-if="!mobile"></v-col>
                                                     </v-row>
                                                     <v-tooltip text="Scroll to top" location="top end">
                                                         <template v-slot:activator="{ props }">
@@ -283,53 +261,22 @@
                                                         @scroll-end="onScrollEnd"
                                                         ref="scrollerRef"
                                                     >
-                                                        <template
-                                                            v-slot="{
-                                                                item,
-                                                                index,
-                                                                active,
-                                                            }"
-                                                        >
+                                                        <template v-slot="{ item, index, active, }">
                                                             <DynamicScrollerItem
                                                                 :item="item"
                                                                 :index="index"
                                                                 :active="active"
                                                                 class="scroller-item"
-                                                                :ref="
-                                                                    itemRefs[
-                                                                        index
-                                                                    ]
-                                                                "
+                                                                :ref="itemRefs[index]"
                                                             >
-                                                                <template
-                                                                    #default
-                                                                >
+                                                                <template #default>
                                                                     <NodeShapeViewer
-                                                                        :classIRI="
-                                                                            selectedIRI
-                                                                        "
-                                                                        :quad="
-                                                                            item
-                                                                                .props
-                                                                                .quad
-                                                                        "
-                                                                        :key="
-                                                                            selectedIRI +
-                                                                            '-' +
-                                                                            item.title
-                                                                        "
-                                                                        :formOpen="
-                                                                            formOpen
-                                                                        "
-                                                                        :variant="
-                                                                            item.title ==
-                                                                            queried_pid
-                                                                                ? 'outlined'
-                                                                                : 'tonal'
-                                                                        "
-                                                                        @namedNodeSelected="
-                                                                            handleInternalNavigation
-                                                                        "
+                                                                        :classIRI="selectedIRI"
+                                                                        :quad="item.props.quad"
+                                                                        :key="selectedIRI + '-' + item.title"
+                                                                        :formOpen="formOpen"
+                                                                        :variant="item.title == queried_pid ? 'outlined' : 'tonal'"
+                                                                        @namedNodeSelected="handleInternalNavigation"
                                                                     />
                                                                 </template>
                                                             </DynamicScrollerItem>
@@ -341,37 +288,22 @@
                                                         </template>
                                                     </DynamicScroller>
                                                 </div>
-                                                <div
-                                                    v-else
-                                                    style="
-                                                        margin-top: 1em;
-                                                        margin-left: 1em;
-                                                    "
-                                                >
+                                                <div v-else style="margin-top: 1em; margin-left: 1em;">
                                                     <em>No items</em>
                                                 </div>
                                             </span>
                                         </span>
-                                        <span
-                                            v-else-if="frontPageHTML"
-                                            style="
-                                                margin-top: 1em;
-                                                margin-left: 1em;
-                                            "
-                                        >
+                                        <!-- If no class is selected, and there is HTML frontpage specified, show it -->
+                                        <span v-else-if="frontPageHTML" style="margin-top: 1em; margin-left: 1em;">
                                             <div v-html="frontPageHTML"></div>
                                         </span>
-                                        <span
-                                            v-else
-                                            style="
-                                                margin-top: 1em;
-                                                margin-left: 1em;
-                                            "
-                                        >
+                                        <!-- If no class is selected and no frontpage specified, show simple sentence -->
+                                        <span v-else style="margin-top: 1em; margin-left: 1em;">
                                             <em>Select a data type</em>
                                         </span>
-
                                     </v-col>
+
+                                    <!-- Column for Form(s) -->
                                     <v-col v-if="formOpen">
                                         <v-expansion-panels
                                             variant="accordion"
@@ -386,20 +318,13 @@
                                                     f.nodeIDX +
                                                     '-expansionpanel'
                                                 "
-                                                :value="
-                                                    'panel' + (i + 1).toString()
-                                                "
+                                                :value="'panel' + (i + 1).toString()"
                                                 :disabled="f.disabled"
                                             >
                                                 <v-expansion-panel-title>
                                                     <h2>
                                                         <em>
-                                                            {{
-                                                                f.formType ===
-                                                                'new'
-                                                                    ? 'Adding'
-                                                                    : 'Editing'
-                                                            }}:
+                                                            {{ f.formType === 'new' ? 'Adding' : 'Editing' }}:
                                                             {{
                                                                 getDisplayName(
                                                                     f.shapeIRI,
@@ -411,13 +336,8 @@
                                                         </em>
                                                     </h2>
                                                 </v-expansion-panel-title>
-                                                <v-expansion-panel-text
-                                                    density="compact"
-                                                    eager
-                                                >
-                                                    <span
-                                                        v-if="idRecordLoading"
-                                                    >
+                                                <v-expansion-panel-text density="compact" eager>
+                                                    <span v-if="idRecordLoading">
                                                         <v-skeleton-loader
                                                             type="list-item-avatar"
                                                         ></v-skeleton-loader>
@@ -432,12 +352,8 @@
                                                                     '-form-' +
                                                                     f.formType
                                                                 "
-                                                                :shape_iri="
-                                                                    f.shapeIRI
-                                                                "
-                                                                :node_idx="
-                                                                    f.nodeIDX
-                                                                "
+                                                                :shape_iri="f.shapeIRI"
+                                                                :node_idx="f.nodeIDX"
                                                             ></FormEditor>
                                                         </div>
                                                     </span>
@@ -475,7 +391,14 @@
     <AppFooter />
 </template>
 
+<!------------>
+<!-- SCRIPT -->
+<!------------>
+
 <script setup>
+// ------- //
+// IMPORTS //
+// ------- //
 import {
     ref,
     computed,
@@ -506,6 +429,7 @@ import {
     updatePropertyGroups,
     toCURIE,
     toIRI,
+    updateURL,
 } from '@/modules/utils';
 import editorMatchers from '@/modules/editors';
 // Leave the viewerMatchers import here to load viewers, even if unused in this component
@@ -527,12 +451,18 @@ import {
 import { useDisplay } from 'vuetify'
 import WizardGroup from '@/components/WizardGroup.vue'
 import { showWizardGroup } from '@/composables/useWizard'
-const { smAndDown, mobile } = useDisplay()
-const { namedNode } = DataFactory;
 
+// ----- //
+// PROPS //
+// ----- //
 const props = defineProps({
     configUrl: String,
 });
+
+
+const { smAndDown, mobile } = useDisplay()
+const { namedNode } = DataFactory;
+const allPrefixes = reactive({});
 
 // ---------- //
 // PAGINATION //
@@ -635,9 +565,73 @@ const {
 } = useData(config);
 const { classDS, getClassData, allSubClasses} = useClasses(config);
 const { shapesDS, getSHACLschema } = useShapes(config);
-const { formData } = useForm(config);
+
+
+// Data for creating/editing items
+// Select a data type
+var selectedShape = ref(null);
+var selectedIRI = ref(null);
+const canSubmit = ref(true);
+
+function afterFormsClosed() {
+    drawer.value = mobile.value ? false : true;
+    canSubmit.value = true;
+    classRecordsLoading.value = false;
+    updateURL(selectedIRI.value, false, null, allPrefixes);
+}
+
+function afterAddInstanceItem() {
+    if (mobile.value) drawer.value = false;
+    canSubmit.value = false;
+    updateURL(selectedIRI.value, true, null, allPrefixes);
+}
+
+function afterEditInstanceItem(editShapeIRI, editItemIdx) {
+    if (mobile.value) drawer.value = false;
+    canSubmit.value = false;
+    updateURL(editShapeIRI, true, editItemIdx, allPrefixes);
+}
+
+// Select a data item
+var selectedItem = ref(null);
+// Create or edit a data item
+const drawer = mobile.value ? ref(false) : ref(true);
+const classRecordsLoading = ref(false);
+const { 
+    formData,
+    openForms,
+    currentOpenForm,
+    formOpen,
+    editMode,
+    lastSavedNode,
+    addInstanceItem,
+    editInstanceItem,
+    addForm,
+    removeForm,
+} = useForm({
+    rdfDS,
+    allPrefixes,
+    callbacks: {
+        onAddInstanceItem: afterAddInstanceItem,
+        onEditInstanceItem: afterEditInstanceItem,
+        onAddForm: scrollToTop,
+        onRemoveForm: afterFormsClosed, // will run when last form is closed
+        onRemoveFormSaved: getInstanceItems, // will run when last form is closed via save
+    }
+});
+provide('editMode', editMode);
+provide('formOpen', formOpen);
+provide('editInstanceItem', editInstanceItem);
+provide('addForm', addForm);
+provide('openForms', openForms);
+provide('removeForm', removeForm);
+provide('lastSavedNode', lastSavedNode);
+provide('canSubmit', canSubmit);
+provide('formData', formData);
+
 const { token, setToken, clearToken } = useToken();
 const ID_IRI = ref('');
+
 const canEditClass = ref(true)
 const frontPageHTML = ref(null)
 const searchableFields = [];
@@ -707,7 +701,7 @@ provide('ID_IRI', ID_IRI);
 provide('rdfDS', rdfDS);
 provide('shapesDS', shapesDS);
 provide('classDS', classDS);
-provide('formData', formData);
+
 provide('allSubClasses', allSubClasses);
 provide('fetchFromService', fetchFromService);
 provide('hasUnfetchedPages', hasUnfetchedPages);
@@ -746,7 +740,7 @@ var newTypeSelected = false;
 // - FETCH FROM SERVICE IF REQUIRED
 // - SET VIEW FROM QUERY
 // ---------------------------------------------- //
-const allPrefixes = reactive({});
+
 const page_ready = ref(false);
 provide('allPrefixes', allPrefixes);
 watch(
@@ -850,14 +844,14 @@ const tokenWarning = ref(false);
 provide('tokenWarning', tokenWarning);
 const submitWarning = ref(false);
 provide('submitWarning', submitWarning);
-const canSubmit = ref(true);
+
 const submitButtonPressed = ref(false);
 function submitFn() {
     submitButtonPressed.value = true;
 }
 provide('submitButtonPressed', submitButtonPressed);
 provide('submitFn', submitFn);
-provide('canSubmit', canSubmit);
+
 const noSubmitDialog = ref(false);
 const submitDialog = ref(false);
 provide('submitDialog', submitDialog);
@@ -879,39 +873,15 @@ watch(
     { immediate: true }
 );
 
-const lastSavedNode = ref(null);
-provide('lastSavedNode', lastSavedNode);
 const itemsTrigger = ref(false);
 const queried_pid = ref(null);
-const classRecordsLoading = ref(false);
+
 const idRecordLoading = ref(false);
 const fetchedItemCount = ref(null)
 provide('editorMatchers', editorMatchers);
 provide('defaultEditor', defaultEditor);
-// Data for creating/editing items
-// Select a data type
-var selectedShape = ref(null);
-var selectedIRI = ref(null);
-// Select a data item
-var selectedItem = ref(null);
-// Create or edit a data item
-const addItem = ref(false);
-const newItemIdx = ref(null);
-const editItem = ref(false);
-const formOpen = ref(false);
-const drawer = mobile.value ? ref(false) : ref(true);
-const editShapeIRI = ref(null);
-const editItemIdx = ref(null);
-const editMode = ref(false);
-let debounceTypingTimer = null;
-provide('editMode', editMode);
-provide('formOpen', formOpen);
-onBeforeUpdate(() => {
-    console.log('onBeforeUpdate ShaclVue');
-    editItemIdx.value = null;
-    editShapeIRI.value = null;
-});
 
+let debounceTypingTimer = null;
 const debouncedUpdate = debounce(() => {
     if (openForms.length == 0) {
         console.log('CHECK: graphdata shaclvue');
@@ -1110,7 +1080,7 @@ async function selectType(IRI, fromUser, fromBackButton) {
         if (el) el.scrollTop = 0;
     });
     if (fromUser) {
-        updateURL(IRI);
+        updateURL(IRI, false, null, allPrefixes);
     }
 
     if (!fromUser || fromBackButton) {
@@ -1147,18 +1117,6 @@ function onTokenDialogOpened() {
     window.history.replaceState(null, '', url);
 }
 
-function updateURL(IRI, edit, pid) {
-    var curie = toCURIE(IRI, allPrefixes);
-    var queryParams = `?${encodeURIComponent('sh:NodeShape')}=${encodeURIComponent(curie)}`;
-    if (pid) {
-        queryParams += `&pid=${encodeURIComponent(pid)}`;
-    }
-    if (edit) {
-        queryParams += '&edit=true';
-    }
-    history.replaceState(null, '', window.location.pathname + queryParams);
-}
-
 function getQueryParams() {
     const url = new URL(window.location);
     return url.searchParams;
@@ -1190,9 +1148,9 @@ async function setViewFromQuery() {
                         // queried_pid.value = instanceIRI;
                         textMatchType.value = 'exact';
                         searchText.value = instanceIRI;
-                        updateURL(nodeShapeIRI, false, instanceIRI)
+                        updateURL(nodeShapeIRI, false, instanceIRI, allPrefixes)
                     } else {
-                        updateURL(nodeShapeIRI, false, null)
+                        updateURL(nodeShapeIRI, false, null, allPrefixes)
                         console.error(`Unresolvable PID queryparams: ${instance_pid} `);
                     }
                 }
@@ -1204,7 +1162,7 @@ async function setViewFromQuery() {
                 // If edit AND NOT instance_pid, just open the empty form
                 if (edit) {
                     if (configVarsMain.noEditClasses.indexOf(toCURIE(nodeShapeIRI, allPrefixes)) >= 0) {
-                        updateURL(nodeShapeIRI, false)
+                        updateURL(nodeShapeIRI, false, null, allPrefixes)
                     } else {
                         if (instanceIRI) {
                             let instObject = {
@@ -1213,8 +1171,8 @@ async function setViewFromQuery() {
                             }
                             editInstanceItem(instObject)
                         } else {
-                            addInstanceItem();
-                            updateURL(nodeShapeIRI, true);
+                            addInstanceItem(nodeShapeIRI);
+                            updateURL(nodeShapeIRI, true, null, allPrefixes);
                         }
                         
                     }
@@ -1244,51 +1202,6 @@ function getClassIcon(class_iri) {
 }
 provide('getClassIcon', getClassIcon);
 
-function addInstanceItem() {
-    newItemIdx.value = null;
-    editItem.value = false;
-    addItem.value = false;
-    newItemIdx.value = crypto.randomUUID();
-    addForm(selectedIRI.value, newItemIdx.value, 'new');
-    addItem.value = true;
-    formOpen.value = true;
-    if (mobile.value) drawer.value = false;
-    canSubmit.value = false;
-    updateURL(selectedIRI.value, true);
-}
-
-async function editInstanceItem(instance, addQuadsToForm = true, removeNode = true) {
-    // When user selects to edit, it will be either a namedNode or blankNode
-    // and the related information would already be in the graph as triples
-    // Also, related information might already be in formData if the user
-    // created or edited the same node before in the same session. If not,
-    // then a formData node has to be created from the triples in the graph.
-    console.log(instance);
-    addItem.value = false;
-    editItem.value = false;
-    var subjectTerm = instance.quad.subject;
-    var objectTerm = instance.quad.object;
-    if (objectTerm.termType === 'NamedNode') {
-        editShapeIRI.value = objectTerm.value;
-    } else {
-        editShapeIRI.value = toIRI(objectTerm.value, allPrefixes);
-    }
-    editItemIdx.value = instance.value; // this is the id
-    // Now create the formData entries from quads in the graph dataset
-    if (addQuadsToForm) {
-        formData.quadsToFormData(editShapeIRI.value, subjectTerm, rdfDS);
-    }
-    // set editMode
-    editMode.value = true;
-    // open formEditor
-    addForm(editShapeIRI.value, editItemIdx.value, 'edit', removeNode);
-    editItem.value = true;
-    formOpen.value = true;
-    if (mobile.value) drawer.value = false;
-    canSubmit.value = false;
-    updateURL(editShapeIRI.value, true, editItemIdx.value);
-}
-provide('editInstanceItem', editInstanceItem);
 
 function getInstanceItems() {
     // ---
@@ -1521,59 +1434,7 @@ function toggleOrder() {
     }
 }
 
-const openForms = reactive([]);
-const currentOpenForm = computed(() => {
-    if (openForms.length > 0) {
-        return 'panel' + openForms.length.toString();
-    }
-    return null;
-});
 
-function addForm(shapeIRI, nodeIDX, formType, removeNode = true) {
-    // shapeIRI: class IRI
-    // nodeIDX: node ID
-    // formType: 'new' | 'edit'
-    // removeNode: true | 'onSave' | 'onCancel' | false
-    for (var i = 0; i < openForms.length; i++) {
-        openForms[i].disabled = true;
-    }
-    openForms.push({
-        shapeIRI: shapeIRI,
-        nodeIDX: nodeIDX,
-        formType: formType,
-        disabled: false,
-        activatedInstancesSelectEditor: null,
-        removeNode: removeNode,
-    });
-    nextTick(() => {
-        const el = mainContent.value?.$el || mainContent.value;
-        if (el) el.scrollTop = 0;
-    });
-}
-
-function removeForm(savedNode) {
-    if (savedNode) {
-        lastSavedNode.value = savedNode;
-    }
-    openForms.pop();
-    if (openForms.length > 0) {
-        openForms.at(-1).disabled = false;
-    } else {
-        editItem.value = false;
-        formOpen.value = false;
-        drawer.value = mobile.value ? false : true;
-        canSubmit.value = true;
-        editMode.value = false;
-        updateURL(selectedIRI.value, false);
-        if (savedNode) {
-            getInstanceItems();
-        }
-        classRecordsLoading.value = false;
-    }
-}
-provide('addForm', addForm);
-provide('openForms', openForms);
-provide('removeForm', removeForm);
 </script>
 
 <style>
