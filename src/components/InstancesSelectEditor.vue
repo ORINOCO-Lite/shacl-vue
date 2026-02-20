@@ -320,7 +320,6 @@ import {
     includeClass,
     snakeToCamel,
     getDisplayName,
-    transformSearchFieldName,
     toCURIE,
     toIRI,
 } from '@/modules/utils';
@@ -377,6 +376,7 @@ const visibleRange = ref({
     visibleEndIndex: 0
 })
 const config = inject('config');
+const searchableFields = inject('searchableFields');
 const fetchFromService = inject('fetchFromService');
 const hasUnfetchedPages = inject('hasUnfetchedPages');
 const getTotalItems = inject('getTotalItems');
@@ -492,11 +492,6 @@ const saveDialogForm = () => {
 };
 provide('saveFormHandler', saveDialogForm);
 let debounceTypingTimer = null;
-
-const searchableFields = [];
-for (const field of configVarsMain.filterRecordsBy) {
-    searchableFields.push(transformSearchFieldName(field))
-}
 
 const showClearIcon = computed(() => {
     if ((!menu.value) && subValues.value.selectedInstance) {

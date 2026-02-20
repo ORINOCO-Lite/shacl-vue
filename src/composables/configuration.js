@@ -3,8 +3,8 @@
  * Composable for managing the application configuration
  */
 
-import { isObject, snakeToCamel } from '@/modules/utils';
-import { ref, onMounted, reactive } from 'vue';
+import { isObject, snakeToCamel, getContent, toIRI, toCURIE} from '@/modules/utils';
+import { ref, onMounted, reactive, watch} from 'vue';
 import { mergeWith } from 'lodash-es'
 import { parse as parseYAML } from 'yaml';
 const basePath = import.meta.env.BASE_URL || '/';
@@ -100,6 +100,7 @@ const mainVarsToLoad = {
     property_groups: {},
 };
 
+
 function mergeCustomizer(objValue, srcValue) {
     if (!Array.isArray(objValue) || !Array.isArray(srcValue)) {
         return undefined // let mergeWith handle it without a customizer
@@ -133,37 +134,32 @@ async function parseConfigResponse(response, url) {
 }
 
 export function useConfig(url) {
-    console.log(`URL passed to useConfig: ${url}`)
+    // ---- //
+    // Data //
+    // ---- //
     const defaultConfigCandidates = [
         `${basePath}config.yaml`,
         `${basePath}config.yml`,
         `${basePath}config.json`,
     ];
     let configURL = null;
-    async function resolveConfigURL() {
-        if (url) {
-            return url.indexOf('http') === 0 ? url : `${basePath}${url}`
-        }
-        for (const candidate of defaultConfigCandidates) {
-            try {
-                const res = await fetch(candidate, { method: 'HEAD' })
-                const contentType = res.headers.get('content-type') || ''
-                if (res.ok && !contentType.includes('text/html')) {
-                    return candidate
-                }
-            } catch (_) {}
-        }
-        return null
-    }
-    
     const config = ref(null);
     const configFetched = ref(false);
+    const configReady = ref(false);
     const configError = ref(false);
     const configVarsMain = reactive({});
+    const ID_IRI = ref('');
+    const allPrefixes = reactive({});
+    const frontPageHTML = ref(null);
+    const priorityClassList = ref([]);
+    const searchableFields = [];
     for (const [key, value] of Object.entries(mainVarsToLoad)) {
         configVarsMain[snakeToCamel(key)] = value;
     }
 
+    // ----------------- //
+    // Lifecycle methods //
+    // ----------------- //
     onMounted(async () => {
         try {
             configURL = await resolveConfigURL()
@@ -184,8 +180,6 @@ export function useConfig(url) {
             if (!mainConfig || typeof mainConfig !== 'object') {
                 throw new Error('Config file is not valid JSON/YAML')
             }
-            console.log("mainConfig:")
-            console.log(mainConfig)
             let externalConfig = {};
             if (mainConfig.external_config_url) {
                 let externalConfigLoaded = await loadContent(mainConfig.external_config_url, 'json')
@@ -201,6 +195,74 @@ export function useConfig(url) {
             throw error;
         }
     });
+
+    watch(
+        configFetched,
+        async (newValue) => {
+            if (newValue) {
+                if (!config.value.id_iri) {
+                    throw new Error(
+                        "Configuration error: 'id_iri' is a required field"
+                    );
+                }
+                ID_IRI.value = config.value.id_iri;
+                // Load all variables from config that are necessary for the main shaclvue and appheader components
+                loadConfigVars();
+                document.documentElement.style.setProperty(
+                    '--link-color',
+                    configVarsMain.appTheme.link_color
+                );
+                document.documentElement.style.setProperty(
+                    '--hover-color',
+                    configVarsMain.appTheme.hover_color
+                );
+                document.documentElement.style.setProperty(
+                    '--active-color',
+                    configVarsMain.appTheme.active_color
+                );
+                document.documentElement.style.setProperty(
+                    '--visited-color',
+                    configVarsMain.appTheme.visited_color
+                );
+                // Set html document title from config variables
+                if (configVarsMain.pageTitle) {
+                    document.title = configVarsMain.pageTitle;
+                } else if (configVarsMain.appName) {
+                    document.title = configVarsMain.appName;
+                } else {
+                    document.title = 'shacl-vue';
+                }
+                // Prefetch text content, e.g. templates
+                await loadAllContent()
+                // Load main page content if provided
+                frontPageHTML.value = null
+                if (configVarsMain.frontPageContent) {
+                    frontPageHTML.value = getContent(configVarsMain.content, configVarsMain.frontPageContent)
+                }
+                configReady.value = true;
+            }
+        },
+        { immediate: true }
+    );
+
+    // --------- //
+    // Functions //
+    // --------- //
+    async function resolveConfigURL() {
+        if (url) {
+            return url.indexOf('http') === 0 ? url : `${basePath}${url}`
+        }
+        for (const candidate of defaultConfigCandidates) {
+            try {
+                const res = await fetch(candidate, { method: 'HEAD' })
+                const contentType = res.headers.get('content-type') || ''
+                if (res.ok && !contentType.includes('text/html')) {
+                    return candidate
+                }
+            } catch (_) {}
+        }
+        return null
+    }
 
     async function loadContent(url, format = 'json') {
         if (!url) {
@@ -252,12 +314,126 @@ export function useConfig(url) {
         }
     }
 
+    function mergePrefixes(prefixArray) {
+        Object.assign(allPrefixes, ...prefixArray);
+        var allPrefixKeys = Object.keys(allPrefixes);
+        Object.keys(configVarsMain.prefixes).forEach((p) => {
+            if (allPrefixKeys.indexOf(p) < 0) {
+                allPrefixes[p] = configVarsMain.prefixes[p];
+            }
+        });
+    }
+
+    function processPriorityClasses() {
+        priorityClassList.value = configVarsMain.priorityClasses?.map(item => toIRI(item.class, allPrefixes))
+    }
+
+    function processShapeUpdates(updateShapesFromDefault, updateShapes) {
+        const configShapes = configVarsMain.updateShapes;
+        const configShapesDefault = configVarsMain.updateShapesDefault;
+        // 1. First we process default shapes
+        // configShapesDefault example (yaml):
+        // update_shapes_default:
+        //     _all_node_shapes:
+        //     _all_property_shapes:
+        //         dlthings:title:
+        //             sh:order: 1
+        // Here we see if the _all_property_shapes object has keys
+        // If true: we need to go through all node shapes in the shapes dataset,
+        // and for each of them find the relevant property shape and update it.
+        // This is what the updateShapesFromDefault function does
+        if (Object.keys(configShapesDefault?._all_property_shapes ?? {}).length > 0) {
+            updateShapesFromDefault(configShapesDefault._all_property_shapes, allPrefixes)
+        }
+        // 2. Then we process all shape updates
+        if (Object.keys(configShapes ?? {}).length > 0) {
+            updateShapes(configShapes, allPrefixes)
+        }
+    }
+
+    function processSearchableFields() {
+        for (const field of configVarsMain.filterRecordsBy) {
+            searchableFields.push(transformSearchFieldName(field, 'uri'))
+        }
+    }
+
+    function transformSearchFieldName(fieldName, format = 'curie') {
+        if (fieldName === "skos:prefLabel") {
+            return "_prefLabel";
+        } else if (fieldName === "shaclvue:displayLabel") {
+            return "_displayLabel";
+        } else if (fieldName === "dlthings:pid") {
+            return "itemValue";
+        } else {
+            if (format === 'curie') {
+                return fieldName;
+            } else {
+                return toIRI(fieldName, allPrefixes);
+            }
+        }
+    }
+
+    function processPropertyGroups(updatePropertyGroups) {
+        if (
+            configVarsMain.propertyGroups && Object.keys(configVarsMain.propertyGroups).length > 0
+        ) {
+            updatePropertyGroups(configVarsMain.propertyGroups)
+        }
+    }
+
+    async function processUpfrontServiceRequests(fetchFromService) {
+        if (
+            configVarsMain.useService &&
+            config.value.hasOwnProperty('service_fetch_before') &&
+            config.value.service_fetch_before
+        ) {
+            if (config.value.service_fetch_before['get-record']?.length > 0) {
+                console.log("Upfront fetch get-record")
+                const fetchRPromises = config.value.service_fetch_before['get-record'].map((iri) =>
+                    fetchFromService('get-record', toIRI(iri, allPrefixes), allPrefixes)
+                );
+                var results = await Promise.allSettled(fetchRPromises);
+            }
+            if (config.value.service_fetch_before['get-records']?.length > 0) {
+                console.log("Upfront fetch get-records-before")
+                const fetchRsPromises = config.value.service_fetch_before['get-records'].map((iri) =>
+                    fetchFromService('get-records-before', toIRI(iri, allPrefixes), allPrefixes)
+                );
+                var results = await Promise.allSettled(fetchRsPromises);
+            }
+        }
+    }
+
+    function getClassIcon(class_iri) {
+        if (configVarsMain.classIcons) {
+            let classCurie = toCURIE(class_iri, allPrefixes)
+            if (configVarsMain.classIcons[classCurie]) {
+                return configVarsMain.classIcons[classCurie];
+            }
+        }
+        return 'mdi-circle-outline';
+    }
+
+
+    // ------- //
+    // Returns //
+    // ------- //
     return {
+        allPrefixes,
         config,
-        configFetched,
         configError,
+        configReady,
         configVarsMain,
-        loadConfigVars,
-        loadAllContent,
+        frontPageHTML,
+        getClassIcon,
+        ID_IRI,
+        mergePrefixes,
+        priorityClassList,
+        processPriorityClasses,
+        processPropertyGroups,
+        processSearchableFields,
+        processShapeUpdates,
+        processUpfrontServiceRequests,
+        searchableFields,
     };
 }

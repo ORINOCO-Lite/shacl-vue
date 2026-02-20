@@ -9,21 +9,20 @@ import { reactive, computed, ref} from 'vue';
 import { FormBase } from 'shacl-tulip';
 import { toIRI} from '@/modules/utils';
 
-export function useForm({rdfDS, allPrefixes, callbacks = {}}) {
+export function useForm({openForms, rdfDS, allPrefixes, callbacks = {}}) {
     // ---- //
     // Data //
     // ---- //
     const formData = new FormBase(null, reactive({}));
-    const openForms = reactive([]);
     const addItem = ref(false);
     const editItem = ref(false);
     const formOpen = ref(false);
     const editMode = ref(false);
     const lastSavedNode = ref(null);
 
-    // ----------------- //
-    // Lifecycle methods //
-    // ----------------- //
+    // --------------------- //
+    // Lifecycle/Vue methods //
+    // --------------------- //
     const currentOpenForm = computed(() => {
         if (openForms.length > 0) {
             return 'panel' + openForms.length.toString();
@@ -74,7 +73,7 @@ export function useForm({rdfDS, allPrefixes, callbacks = {}}) {
         editItem.value = true;
         formOpen.value = true;
         if (callbacks.onEditInstanceItem) {
-            callbacks.onEditInstanceItem()
+            callbacks.onEditInstanceItem(editShapeIRI, editItemIdx)
         }
     }
 
@@ -123,15 +122,15 @@ export function useForm({rdfDS, allPrefixes, callbacks = {}}) {
     // Returns //
     // ------- //
     return {
-        formData,
-        openForms,
-        currentOpenForm,
-        formOpen,
-        editMode,
-        lastSavedNode,
-        addInstanceItem,
-        editInstanceItem,
         addForm,
+        addInstanceItem,
+        currentOpenForm,
+        editInstanceItem,
+        editMode,
+        formData,
+        formOpen,
+        lastSavedNode,
+        openForms,
         removeForm,
     };
 }
