@@ -31,14 +31,14 @@ export function useData(config) {
             const serviceBaseURL = config.value.service_base_url;
             const serviceEndpoints = config.value.service_endpoints;
             if (!(serviceBaseURL || serviceEndpoints)) {
-                throw new Error(
-                    'Service base URL and/or service endpoints not included in configuration.\nFetching data from an endpoint will not be possible.'
-                );
+                let msg = 'Service base URL and/or service endpoints not included in configuration.\nFetching data from an endpoint will not be possible.'
+                console.error(msg)
+                throw new Error(msg);
             }
             if (Object.keys(serviceEndpoints).indexOf(endpoint) < 0) {
-                throw new Error(
-                    `Unknown endpoint '${endpoint}' provided; continuing without making a request to configured service`
-                );
+                let msg = `Unknown endpoint '${endpoint}' provided; continuing without making a request to configured service`
+                console.error(msg)
+                throw new Error(msg);
             }
             // Handle two possibilities:
             // - serviceBaseURL is a string (backwards compatible)
@@ -85,7 +85,6 @@ export function useData(config) {
                         var nextPage = fetchedPages[baseUrl][arg][matchText].lastPageFetched + 1;
                         query_string = base_query_string.replace('{page_number}', nextPage.toString())
                         query_string = _handleMatchingParam(query_string, matchText)
-                        console.log(`query_string: ${query_string}`)
                         if (nextPage > fetchedPages[baseUrl][arg][matchText].totalPages) {
                             console.log(
                                 `Skipping request: Last page of records already fetched for class '${arg}' and matching string '${matchText}' at service URL '${baseUrl}' `
@@ -172,8 +171,6 @@ export function useData(config) {
                             // assume the rest stays constant.
                             fetchedPages[baseUrl][arg][matchText]["lastPageFetched"] = result.pageMeta.page
                         }
-                        console.log("fetchedPages:")
-                        console.log(toRaw(fetchedPages))
                     }
                 }
             }
@@ -385,7 +382,6 @@ export function useData(config) {
 
     async function submitRdfData(shapesDS, id_iri, prefixes, config, rdfDS) {
         try {
-            console.log('inside submitRdfData function');
             if (nodesToSubmit.value.length == 0) {
                 var msg =
                     'submitRdfData: no edited named nodes to submit; returning.';
@@ -466,8 +462,6 @@ export function useData(config) {
                     prefixes
                 );
                 var postURL = `${writeUrls[0].url}${query_string}`;
-                console.log('POSTing to the following URL:');
-                console.log(postURL);
                 postPromises.push(
                     postRDF(postURL, ds, 'text/turtle', headers, prefixes)
                         .then((result) => ({
@@ -490,8 +484,6 @@ export function useData(config) {
             }
             // wait until all POST requests settle.
             const results = await Promise.allSettled(postPromises);
-            console.log('POST results:');
-            console.log(results);
             for (var r of results) {
                 if (r.status === 'fulfilled') {
                     const { nodeshape_iri, node_iri, result } = r.value;
@@ -544,17 +536,17 @@ export function useData(config) {
 
     // expose managed state as return value
     return {
-        rdfDS,
-        getRdfData,
-        fetchFromService,
         fetchedPages,
-        hasUnfetchedPages,
-        getTotalItems,
+        fetchFromService,
         firstPageFetched,
+        getRdfData,
+        getTotalItems,
+        hasUnfetchedPages,
         http401response,
-        submitRdfData,
-        savedNodes,
-        submittedNodes,
         nodesToSubmit,
+        rdfDS,
+        savedNodes,
+        submitRdfData,
+        submittedNodes,
     };
 }

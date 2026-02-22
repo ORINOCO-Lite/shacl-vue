@@ -261,64 +261,6 @@ export function getDisplayName(uri, configVarsMain, prefixes, shape = {}) {
     }
 }
 
-export function getSuperClasses(class_uri, graph) {
-    var superClasses = [];
-    var endReached = false;
-    var sC;
-    var uri = class_uri;
-    while (endReached != true) {
-        sC = getSuperClass(uri, graph);
-        if (sC == null) {
-            endReached = true;
-        } else {
-            for (var el of sC) {
-                superClasses.push(el.object.value);
-            }
-            if (sC.length == 2) {
-                sC = sC[1];
-            } else {
-                sC = sC[0];
-            }
-            uri = sC.object.value;
-        }
-    }
-    return superClasses;
-}
-
-export function getSuperClass(class_uri, graph) {
-    const superClass = graph.getQuads(
-        namedNode(class_uri),
-        namedNode(RDFS.subClassOf.value),
-        null,
-        null
-    );
-    if (superClass.length > 0) {
-        // this is an array which will most likely have a single element, but could have multiple
-        return superClass.reverse();
-    }
-    return null;
-}
-
-export function getSubClasses(class_uri, graph) {
-    const visited = new Set();
-    const subClasses = new Set();
-    function traverse(uri) {
-        if (visited.has(uri)) return;
-        visited.add(uri);
-        const direct = getDirectSubClasses(uri, graph);
-        if (!direct) return;
-        for (const quad of direct) {
-            const subUri = quad.subject.value;
-            if (!subClasses.has(subUri)) {
-                subClasses.add(subUri);
-                traverse(subUri);
-            }
-        }
-    }
-    traverse(class_uri);
-    return Array.from(subClasses);
-}
-
 export function getDirectSubClasses(class_uri, graph) {
     const subClasses = graph.getQuads(
         null,
@@ -723,120 +665,6 @@ export function includeClass(class_iri, showHide_config, allPrefixes) {
     }
 }
 
-export function transformSearchFieldName(fieldName, format = 'curie', allPrefixes) {
-    if (fieldName === "skos:prefLabel") {
-        return "_prefLabel";
-    } else if (fieldName === "shaclvue:displayLabel") {
-        return "_displayLabel";
-    } else if (fieldName === "dlthings:pid") {
-        return "itemValue";
-    } else {
-        if (format === 'curie') {
-            return fieldName;
-        } else {
-            return toIRI(fieldName, allPrefixes);
-        }
-    }
-}
-
-export function updateShapesDataset(configVarsMain, shapesDS, allPrefixes) {
-    const configShapes = configVarsMain.updateShapes;
-    // First we set defaults:
-    updateAllShapes(configVarsMain, shapesDS, allPrefixes)
-    // Then we update dedicated shapes:
-    for (const key of Object.keys(configShapes)) {
-        updateNodeShape(key, configShapes[key], shapesDS, allPrefixes)
-    }
-}
-
-function updatePropertyShape(targetPropertyShape, updateObject, allPrefixes) {
-    // update existing property shape with all new key-value pairs
-    for (const key of Object.keys(updateObject)) {
-        const val = updateObject[key]
-        const keyIRI = toIRI(key, allPrefixes);
-        if (val === null) {
-            delete targetPropertyShape[keyIRI]
-        }
-        if (typeof val == "boolean") {
-            // variable is a boolean, need to write as string to prevent value errors down the line
-            // this is because loading the boolean variable from shacl into javascript also casts it as a string
-            targetPropertyShape[keyIRI] = `${val}`
-        } else if (typeof val == "string") {
-            targetPropertyShape[keyIRI] = toIRI(val, allPrefixes)
-        } else {
-            targetPropertyShape[keyIRI] = val
-        }
-    }
-}
-
-export function updateNodeShape(newShapeIRI, newShapeObj, shapesDS, allPrefixes) {
-    const targetNodeShapeIRI = toIRI(newShapeIRI, allPrefixes)
-    const targetNodeShapeProperties = shapesDS.data.nodeShapes[targetNodeShapeIRI]['properties']
-    for (const key of Object.keys(newShapeObj)) {
-        const keyIRI = toIRI(key, allPrefixes)
-        const value = newShapeObj[key];
-        if (keyIRI == SHACL.property.value) {
-            // if the key is "sh:property", we have to find the correct propertyShape per property
-            for (const prop of Object.keys(value)) {
-                const pathIRI = toIRI(prop, allPrefixes)
-                const propVal = value[prop]
-                // console.log(`have to find property shape in array, where path `)
-                const targetPropertyShape = findObjectByKey(targetNodeShapeProperties, SHACL.path.value, pathIRI)
-                if (targetPropertyShape) {
-                    // update existing property shape with all new key-value pairs
-                    updatePropertyShape(targetPropertyShape, propVal, allPrefixes)
-                } else {
-                    // create new property shape object, by copying
-                    const newPropShape = toRaw(propVal);
-                    for (const key of Object.keys(newPropShape)) {
-                        // cast boolean as string
-                        if (typeof newPropShape[key] == "boolean") {
-                            newPropShape[key] = `${newPropShape[key]}`
-                        }
-                    }
-                    // add path, because it is likely not specified from config (since it's not required)
-                    newPropShape[SHACL.path.value] = pathIRI;
-                    targetNodeShapeProperties.push(newPropShape)
-                }
-            }
-        } else {
-            // Assign value on the nodeShape key, as is (i.e. no validation of the value => could be problematic)
-            shapesDS.data.nodeShapes[targetNodeShapeIRI][keyIRI] = value;
-        }
-    }
-}
-
-function updateAllShapes(configVarsMain, shapesDS, allPrefixes) {
-    const configShapesDefault = configVarsMain.updateShapesDefault;
-    // configShapesDefault example (yaml):
-    // update_shapes_default:
-    //     _all_node_shapes:
-    //     _all_property_shapes:
-    //         dlthings:title:
-    //             sh:order: 1
-    // Here we see if the _all_property_shapes object has keys
-    // If true: we need to go through all node shapes in the shapes dataset,
-    // and for each of them find the relevant property shape and update it
-    if (!(configShapesDefault['_all_property_shapes'] && Object.keys(configShapesDefault['_all_property_shapes']).length > 0)) {
-        return;
-    }
-
-    for (const targetNodeShapeIRI of Object.keys(toRaw(shapesDS.data.nodeShapes))) {
-        const targetNodeShapeProperties = shapesDS.data.nodeShapes[targetNodeShapeIRI]['properties']
-        for (const slot of Object.keys(configShapesDefault['_all_property_shapes'])) {
-            const pathIRI = toIRI(slot, allPrefixes)
-            const defaultValues = configShapesDefault['_all_property_shapes'][slot]
-            const targetPropertyShape = findObjectByKey(targetNodeShapeProperties, SHACL.path.value, pathIRI)
-            if (targetPropertyShape) {
-                // update existing property shape with all new key-value pairs
-                updatePropertyShape(targetPropertyShape, defaultValues, allPrefixes)
-            }
-            // If the associated property shape is not in the node shape, we should not add it here
-            // because we should not create new fields, just set default value for existing fields
-        }
-    }
-}
-
 export function getNotes(shape) {
     let notes = shape?.[SKOS.note.value];
     if (notes) {
@@ -863,29 +691,6 @@ export function getJsRegex(xsdPattern) {
     return {jsFlags, jsPattern};
 }
 
-export function updatePropertyGroups(configVarsMain, shapesDS) {
-    const pGs = configVarsMain.propertyGroups
-    var high_order;
-    for (const group of Object.keys(configVarsMain.propertyGroups)) {
-        const newGroup = {};
-        if (pGs[group].title) newGroup[RDFS.label.value] = pGs[group].title;
-        if (pGs[group].order) newGroup[SHACL.order.value] = pGs[group].order;
-        if (pGs[group].description) newGroup[RDFS.comment.value] = pGs[group].description;
-        shapesDS.data.propertyGroups[group] = newGroup;
-        if (!high_order) {
-            if (pGs[group].order) high_order = pGs[group].order;
-        } else {
-            if (pGs[group].order && pGs[group].order > high_order) {
-                high_order = pGs[group].order;
-            }
-        }
-    }
-    // Add "Additional properties" group, i.e. default
-    shapesDS.data.propertyGroups['_default'] = {};
-    shapesDS.data.propertyGroups['_default'][RDFS.label.value] = "Additional properties";
-    shapesDS.data.propertyGroups['_default'][SHACL.order.value] = high_order + 100;
-}
-
 export function findBlankNodeLink(data, config, allPrefixes) {
 
     const { slot, match = [], return: returnKey } = config;
@@ -902,17 +707,13 @@ export function findBlankNodeLink(data, config, allPrefixes) {
     if (!Array.isArray(relatedTriples)) {
         return undefined;
     }
-    console.log(relatedTriples)
 
     // 2. Filter triples that satisfy ALL match conditions
     const matches = relatedTriples.filter(triple => {
         return match.every(({ key, val }) => {
             const keyIRI = toIRI(key, allPrefixes)
-            console.log(key)
             const valIRI = toIRI(val, allPrefixes);
-            console.log(valIRI)
             const tripleValue = triple[key];
-            console.log(tripleValue)
             // key must exist and value must be an array containing val
             return Array.isArray(tripleValue) && tripleValue.includes(valIRI);
         });
