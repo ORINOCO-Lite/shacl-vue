@@ -1,5 +1,5 @@
 <template>
-    <AppHeader v-if="configReady" :logo="configVarsMain.appTheme.logo" @tokenDialogOpened="onTokenDialogOpened" />
+    <AppHeader v-if="configReady" :logo="configVarsMain.appTheme.logo" @tokenDialogOpened="onTokenDialogOpened"/>
     <v-main>
         <v-container fluid>
             <span v-if="page_ready">
@@ -214,25 +214,23 @@
                                 </v-row>
                             </v-container>
                         </v-main>
+                        <!-- Button to open/close submission drawer -->
+                        <span v-if="configVarsMain.useService">
+                            <v-navigation-drawer
+                                theme="dark"
+                                :color="configVarsMain.appTheme.panel_color"
+                                v-model="submissionDrawer"
+                                style="overflow-y: auto"
+                                :temporary="true"
+                                location="right"
+                                :width="800"
+                                app
+                            >
+                                <SubmitComp v-model:selectedNodesToSubmit="selectedNodesToSubmit"></SubmitComp>
+                            </v-navigation-drawer>
+                        </span>
                     </v-layout>
                 </v-card>
-                <!-- Dialogs for record submission -->
-                <v-dialog v-model="submitDialog" max-width="800">
-                    <SubmitComp></SubmitComp>
-                </v-dialog>
-                <v-dialog
-                    v-model="noSubmitDialog"
-                    max-width="500"
-                    @click:outside="noSubmitDialog = false"
-                >
-                    <v-card>
-                        <v-card-title>Nothing to submit</v-card-title>
-                        <v-card-text>You have no changes to submit</v-card-text>
-                        <v-card-actions>
-                            <v-btn @click="noSubmitDialog = false">Close</v-btn>
-                        </v-card-actions>
-                    </v-card>
-                </v-dialog>
             </span>
             <span v-else>
                 <v-skeleton-loader type="article"></v-skeleton-loader>
@@ -432,9 +430,8 @@ const {
 )
 // Form submission
 const {
-    noSubmitDialog,
-    submitButtonPressed,
-    submitDialog,
+    selectedNodesToSubmit,
+    submissionDrawer,
     submitFn,
     submitWarning,
     tokenWarning,
@@ -474,11 +471,9 @@ provide('searchableFields', searchableFields);
 provide('editorMatchers', editorMatchers);
 provide('defaultEditor', defaultEditor);
 provide('getClassIcon', getClassIcon);
-provide('submitButtonPressed', submitButtonPressed);
 provide('submitFn', submitFn);
 provide('tokenWarning', tokenWarning);
 provide('submitWarning', submitWarning);
-provide('submitDialog', submitDialog);
 
 // --------------------- //
 // Lifecycle/Vue methods //

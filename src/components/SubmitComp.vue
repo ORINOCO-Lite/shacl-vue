@@ -1,75 +1,68 @@
 <template>
     <v-card>
-        <v-card-title>Submit metadata</v-card-title>
+        <v-card-title>Record submission</v-card-title>
         <v-card-text>
             <v-skeleton-loader :loading="awaitingResponse" type="paragraph">
                 <span v-if="!responseReceived">
-                    <span v-if="tokenExists">
+                    <span v-if="nodesToSubmit.length">
                         You have edited and saved
                         {{ nodesToSubmit.length }} record{{
                             nodesToSubmit.length == 1 ? '' : 's'
                         }}
                         for submission:
 
-                        <div style="margin-top: 0.7em; margin-bottom: 0.7em">
-                            <em>
-                                <span v-for="r in nodesToSubmit">
-                                    &nbsp;&nbsp;
-                                    <v-icon>{{
-                                        getClassIcon(r.nodeshape_iri)
-                                    }}</v-icon
-                                    >&nbsp;
-                                    {{
-                                        getDisplayName(
-                                            r.nodeshape_iri,
-                                            configVarsMain,
-                                            allPrefixes,
-                                            shapesDS.data.nodeShapes[r.nodeshape_iri]
-                                        )
-                                    }}:&nbsp;&nbsp;
-                                    {{ getRecordDisplayLabel(namedNode(r.node_iri), rdfDS, allPrefixes, configVarsMain) + ' (' + r.node_iri + ')'}}
-                                    <br />
-                                </span>
-                            </em>
-                        </div>
-
-                        Are you sure you want to continue?
+                        <v-container fluid style="margin-top: 2em; margin-bottom: 2em">
+                            <v-checkbox
+                                v-for="r in nodesToSubmit"
+                                v-model="selectedNodesToSubmit"
+                                :value="r.node_iri"
+                                align="start"
+                                class="align-start"
+                                style="align-items: flex-start;"
+                            >
+                                <template v-slot:label>
+                                    <div class="d-flex align-center">
+                                        &nbsp;
+                                        <v-icon class="mt-1 mr-2">
+                                            {{ getClassIcon(r.nodeshape_iri) }}
+                                        </v-icon>
+                                        &nbsp;
+                                        <div>
+                                            <strong><em>
+                                                {{
+                                                    getDisplayName(
+                                                        r.nodeshape_iri,
+                                                        configVarsMain,
+                                                        allPrefixes,
+                                                        shapesDS.data.nodeShapes[r.nodeshape_iri]
+                                                    )
+                                                }}:
+                                            </em></strong>
+                                            {{
+                                                getRecordDisplayLabel(namedNode(r.node_iri),rdfDS, allPrefixes, configVarsMain) == r.node_iri ?
+                                                getRecordDisplayLabel(namedNode(r.node_iri),rdfDS, allPrefixes, configVarsMain) :
+                                                getRecordDisplayLabel(namedNode(r.node_iri),rdfDS, allPrefixes, configVarsMain)
+                                                +' (' + r.node_iri + ')'
+                                            }}
+                                        </div>
+                                    </div>
+                                </template>
+                            </v-checkbox>
+                        </v-container>
                     </span>
                     <span v-else>
-                        Please add a valid token before submitting your changes.
-                        <v-form ref="submitForm">
-                            <v-text-field name="username" autocomplete="username" style="display: none;"></v-text-field>
-                            <v-text-field
-                                v-model="tokenval"
-                                :rules="rules"
-                                :append-inner-icon="
-                                    visible ? 'mdi-eye-off' : 'mdi-eye'
-                                "
-                                :type="visible ? 'text' : 'password'"
-                                name="password"
-                                autocomplete="current-password"
-                                density="compact"
-                                placeholder="token"
-                                prepend-inner-icon="mdi-lock-outline"
-                                variant="outlined"
-                                @click:append-inner="visible = !visible"
-                            ></v-text-field>
-                        </v-form>
+                        <div style="text-align: center; margin-top: 2em;">
+                            <em><h3>Nothing to submit</h3></em>
+                        </div>
                     </span>
                 </span>
             </v-skeleton-loader>
             <span v-if="responseReceived">
-                <v-icon v-if="responseSuccess" style="color: green"
-                    >mdi-check-circle</v-icon
-                >
-                <v-icon v-if="responseFailure" style="color: red"
-                    >mdi-alert-circle</v-icon
-                >
+                <v-icon v-if="responseSuccess" style="color: green">mdi-check-circle</v-icon>
+                <v-icon v-if="responseFailure" style="color: red">mdi-alert-circle</v-icon>
                 {{ responseText }}
-
                 <br />
                 <br />
-
                 <v-btn
                     v-if="responseFailure"
                     density="compact"
@@ -85,7 +78,7 @@
                         <strong>Error {{ i + 1 }}</strong> <br />
                         <strong>Status: </strong>{{ e.status }}  {{ e.statusText }}<br />
                         <strong>Message: </strong>{{ e.message }} <br />
-                        <div style="display: flex;">
+                        <div style="display: flex;margin-bottom: 1em;">
                             <strong>Response body: </strong>
                             <v-btn
                                 :icon="copiedIndex === i ? 'mdi-check' : 'mdi-content-copy'"
@@ -102,26 +95,22 @@
                 </span>
             </span>
         </v-card-text>
-        <v-card-actions>
-            <v-btn v-if="!responseReceived" @click="cancelSubmit()"
-                ><v-icon>mdi-cancel</v-icon> Cancel</v-btn
-            >
-            <v-btn v-if="!responseReceived" @click="downloadTTL()"
-                ><v-icon>mdi-download</v-icon> Download RDF</v-btn
-            >
-            <v-btn v-if="!responseReceived" type="submit" @click="submit()"
-                ><v-icon>mdi-check-circle-outline</v-icon> Submit</v-btn
-            >
-            <v-btn v-if="responseReceived" @click="cancelSubmit()"
-                ><v-icon>mdi-check-circle-outline</v-icon> OK</v-btn
-            >
+        <v-card-actions class="position-absolute top-0 right-0 pa-2">
+            <v-btn v-if="!responseReceived && nodesToSubmit.length" @click="downloadTTL()">
+                <v-icon>mdi-download</v-icon> Download RDF
+            </v-btn>
+            <v-btn v-if="!responseReceived && nodesToSubmit.length" type="submit" @click="submit()">
+                <v-icon>mdi-check-circle-outline</v-icon> Submit
+            </v-btn>
+            <v-btn v-if="responseReceived" @click="clearSubmitErrors()">
+                <v-icon>mdi-check-circle-outline</v-icon> OK
+            </v-btn>
         </v-card-actions>
     </v-card>
 </template>
 
 <script setup>import { ref, onBeforeMount, inject } from 'vue';
 import { getDisplayName, getRecordDisplayLabel, getRecordQuads, quadsToTTL, dlTTL} from '@/modules/utils';
-
 
 import { useToken } from '@/composables/tokens';
 import { DataFactory, Store } from 'n3';
@@ -131,13 +120,11 @@ const props = defineProps({
     dialog: Boolean,
 });
 
+const selectedNodesToSubmit = defineModel('selectedNodesToSubmit')
 const submitForm = ref(null);
 const tokenval = ref(null);
-const visible = ref(false);
 const { token, setToken, clearToken } = useToken();
 const submitRdfData = inject('submitRdfData');
-const submitButtonPressed = inject('submitButtonPressed');
-const submitDialog = inject('submitDialog');
 const tokenExists = ref(false);
 const shapesDS = inject('shapesDS');
 const rdfDS = inject('rdfDS');
@@ -154,7 +141,6 @@ const responseFailure = ref(false);
 
 const showCompleteFailure = ref(false);
 const responseText = ref('');
-const responseTextFull = ref('');
 const responseErrors = ref([]);
 
 const failureToggleIcon = ref('mdi-chevron-right');
@@ -176,6 +162,16 @@ const rules = [
     },
 ];
 
+function clearSubmitErrors() {
+    responseSuccess.value = false;
+    responseFailure.value = false;
+    responseText.value = '';
+    responseErrors.value = [];
+    responseReceived.value = false;
+    awaitingResponse.value = false;
+
+}
+
 async function submit() {
     // Validate the form first
     if (!tokenExists.value) {
@@ -188,15 +184,13 @@ async function submit() {
     }
     awaitingResponse.value = true;
     var submit_result = await submitRdfData(
+        nodesToSubmit.value.filter(obj => selectedNodesToSubmit.value.includes(obj.node_iri)),
         shapesDS,
         ID_IRI.value,
         allPrefixes,
         config,
         rdfDS
     );
-    console.log('submit_result');
-    console.log(submit_result);
-
     if (submit_result.success) {
         responseSuccess.value = true;
         responseFailure.value = false;
@@ -233,11 +227,6 @@ async function downloadTTL() {
     ttlstring = ttlstring.replace(/^\s+/g, '');
     ttlstring = '\n' + ttlstring;
     dlTTL(ttlstring, 'submit_rdf_data_' + Date.now())
-}
-
-function cancelSubmit() {
-    submitButtonPressed.value = false;
-    submitDialog.value = false;
 }
 
 onBeforeMount(() => {

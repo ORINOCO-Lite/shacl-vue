@@ -380,9 +380,9 @@ export function useData(config) {
         return myStr
     }
 
-    async function submitRdfData(shapesDS, id_iri, prefixes, config, rdfDS) {
+    async function submitRdfData(nodes, shapesDS, id_iri, prefixes, config, rdfDS) {
         try {
-            if (nodesToSubmit.value.length == 0) {
+            if (nodes.length == 0) {
                 var msg =
                     'submitRdfData: no edited named nodes to submit; returning.';
                 console.log(msg);
@@ -430,7 +430,7 @@ export function useData(config) {
             const headers = _getHeaders();
             // collect all POST requests as Promises
             let postPromises = [];
-            let toSubmit = [...nodesToSubmit.value];
+            let toSubmit = [...nodes];
             for (var nodeToSubmit of toSubmit) {
                 const class_uri = nodeToSubmit.nodeshape_iri;
                 // Get shapes for reference

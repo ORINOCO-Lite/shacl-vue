@@ -19,40 +19,12 @@
         </v-app-bar-title>
 
         <template v-slot:append>
-            <span v-if="configVarsMain.useToken">
-                <v-tooltip text="Token" location="bottom">
-                    <template v-slot:activator="{ props }">
-                        <v-badge
-                            v-if="http401response"
-                            dot
-                            color="deep-orange"
-                            overlap
-                            offset-x="12"
-                            offset-y="12"
-                        >
-                            <v-btn
-                                icon="mdi-key-variant"
-                                @click="tokenFn()"
-                                v-bind="props"
-                                :class="{ 'warning-pulse': tokenWarningPulse }"
-                            ></v-btn>
-                        </v-badge>
-                        <v-btn
-                            v-else
-                            icon="mdi-key-variant"
-                            @click="tokenFn()"
-                            v-bind="props"
-                            :class="{ 'warning-pulse': tokenWarningPulse }"
-                        ></v-btn>
-                    </template>
-                </v-tooltip>
-            </span>
             <span v-if="configVarsMain.useService">
                 <v-tooltip text="Submit" location="bottom">
                     <template v-slot:activator="{ props }">
                         <v-badge
                             v-if="nodesToSubmit.length > 0 && !formOpen"
-                            dot
+                            :content="nodesToSubmit.length"
                             color="success"
                             overlap
                             offset-x="12"
@@ -100,6 +72,7 @@
                         @click="settingsFn()"
                         v-bind="props"
                         class="header-button"
+                        :class="{ 'warning-pulse': tokenWarningPulse }"
                     ></v-btn>
                 </template>
             </v-tooltip>
@@ -479,6 +452,11 @@ watch(
             forceError()
             tokenDialog.value = true;
             tokenWarning.value = true;
+            // The following was missing previously, and should actually be included for
+            // the intended functionality. However, this will cause the token dialog to
+            // appear (if an incorrect token is set) every single time a new class is selected
+            // which IMO is too intrusive. Leaving it out until a better idea comes along.
+            // http401response.value = false;
         }
     },
     { immediate: true }
@@ -544,6 +522,7 @@ async function save() {
     if (nodesToSubmit.value.length) {
         submitWarning.value = true;
     }
+    settingsDialog.value = false;
 }
 
 
