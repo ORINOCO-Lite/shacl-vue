@@ -1,5 +1,5 @@
 <template>
-    <v-tooltip location="top start">
+    <v-tooltip :disabled="!currentClassIRI" location="top start">
         <template v-slot:activator="{ props }">
             <span v-bind="props" v-if="isLink && allowLink">
                 <a
@@ -11,11 +11,12 @@
             <span v-bind="props" v-else>{{ contentVal }}</span>
         </template>
         <template v-slot:default="{ isActive }">
-            <v-icon >{{ getClassIcon(currentClassIRI, allPrefixes) }}</v-icon>
-            {{ getDisplayName(currentClassIRI, configVarsMain, allPrefixes, shapesDS.data.nodeShapes[currentClassIRI]) }}
+            <span v-if="currentClassIRI">
+                <v-icon >{{ getClassIcon(currentClassIRI, allPrefixes) }}</v-icon>
+                {{ getDisplayName(currentClassIRI, configVarsMain, allPrefixes, shapesDS.data.nodeShapes[currentClassIRI]) }}
+            </span>
         </template>
     </v-tooltip>
-    
     <span v-if="resolveExternally">
         <sup
             ><a class="inline-icon-btn" :href="hrefVal" target="_blank"
@@ -26,7 +27,7 @@
 </template>
 
 <script setup>
-import { onBeforeMount, ref, inject, onMounted } from 'vue';
+import { onBeforeMount, ref, inject } from 'vue';
 import { includeClass,  getDisplayName, toIRI, toCURIE } from '@/modules/utils';
 const props = defineProps({
     textVal: String,
