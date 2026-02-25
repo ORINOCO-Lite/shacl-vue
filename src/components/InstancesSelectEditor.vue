@@ -417,7 +417,7 @@ if (allclass_array.length > 1) {
     // that is intended for the whole app, and not this particular component
     
     propClassList = allclass_array.map((cl) => {
-        if (includeClass(cl, showHideConfig.value, allPrefixes) && configVarsMain.noEditClasses.indexOf(toCURIE(cl, allPrefixes)) < 0) {
+        if (includeClass(cl, showHideConfig.value, allPrefixes)) {
             return {
                 title: getDisplayName(cl, configVarsMain, allPrefixes, shapesDS.data.nodeShapes[cl]),
                 value: cl,
