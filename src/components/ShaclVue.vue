@@ -48,7 +48,7 @@
                                             )
                                         "
                                         :value="toIRI(node.class, allPrefixes)"
-                                        @click="selectType(toIRI(node.class, allPrefixes), true)"
+                                        @click="selectType(toIRI(node.class, allPrefixes), true, false, node.include_subclasses)"
                                     >
                                     </v-list-item>
                                     <v-divider
@@ -71,7 +71,7 @@
                                         )
                                     "
                                     :value="shapesDS.data.nodeShapeNames[node]"
-                                    @click="selectType(shapesDS.data.nodeShapeNames[node], true)"
+                                    @click="selectType(shapesDS.data.nodeShapeNames[node], true, false, false)"
                                 ></v-list-item>
                                 <!-- Items: read only -->
                                 <span v-if="noEditClassList.length">
@@ -95,7 +95,7 @@
                                             )
                                         "
                                         :value="shapesDS.data.nodeShapeNames[node]"
-                                        @click="selectType(shapesDS.data.nodeShapeNames[node], true)"
+                                        @click="selectType(shapesDS.data.nodeShapeNames[node], true, false, false)"
                                     >
                                     </v-list-item>
                                 </span>
@@ -333,6 +333,10 @@ const {
     processUpfrontServiceRequests,
     searchableFields,
 } = useConfig(props.configUrl);
+// Classes from OWL
+const { classDS, getClassData, allSubClasses, processSubClasses} = useClasses(config);
+// Shapes from SHACL
+const { shapesDS, getSHACLschema, updateShapesFromDefault, updateShapes, updatePropertyGroups} = useShapes(config);
 // Graph data
 const {
     fetchedPages,
@@ -356,6 +360,7 @@ const {
     filteredInstanceItemsComp,
     getInstanceItems,
     headingHover,
+    includeSubClasses,
     instanceItemsComp,
     isFetchingPage,
     matchedInstanceItemsComp,
@@ -371,6 +376,7 @@ const {
     totalItemCount,
 } = useRecords(
     allPrefixes,
+    allSubClasses,
     config,
     configVarsMain,
     fetchFromService,
@@ -381,10 +387,6 @@ const {
     searchableFields,
     selectedIRI,
 );
-// Classes from OWL
-const { classDS, getClassData, allSubClasses, processSubClasses} = useClasses(config);
-// Shapes from SHACL
-const { shapesDS, getSHACLschema, updateShapesFromDefault, updateShapes, updatePropertyGroups} = useShapes(config);
 // Form functionality
 const { 
     addForm,
@@ -678,7 +680,9 @@ function scrollToTop() {
     });
 }
 
-async function selectType(IRI, fromUser, fromBackButton) {
+async function selectType(IRI, fromUser, fromBackButton, includeSubs=false) {
+    var tempIncludeSubs = includeSubClasses.value;
+    includeSubClasses.value = includeSubs ? includeSubs : false;
     fetchedItemCount.value = null;
     totalItemCount.value = 0
     isFetchingPage.value = false;
@@ -734,6 +738,7 @@ async function selectType(IRI, fromUser, fromBackButton) {
                 internalHistory.value.push({
                     iri: tempIRI,
                     searchText: tempSearchText,
+                    includeSubs: tempIncludeSubs,
                 });
             }
         }

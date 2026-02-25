@@ -1,5 +1,5 @@
 
-import { getPidQuad, includeClass, toCURIE, toIRI} from '@/modules/utils';
+import { findObjectByKey, getPidQuad, includeClass, includePriorityClass, toCURIE, toIRI} from '@/modules/utils';
 
 export function useNavigation(
     addInstanceItem,
@@ -41,8 +41,17 @@ export function useNavigation(
             // check if iri is in
             var nodeShapeIRI = toIRI(nodeShape, allPrefixes);
             if (shapesDS.data.nodeShapes[nodeShapeIRI]) {
-                if (includeClass(nodeShapeIRI, configVarsMain, allPrefixes)) {
-                    await selectType(nodeShapeIRI);
+                if (includeClass(nodeShapeIRI, configVarsMain, allPrefixes) ||
+                    includePriorityClass(nodeShapeIRI, configVarsMain, allPrefixes)
+                ) {
+                    var includeSubs = false;
+                    if (configVarsMain.priorityClasses?.length) {
+                        var inst = findObjectByKey(configVarsMain.priorityClasses, 'class', toCURIE(nodeShapeIRI, allPrefixes));
+                        if (inst && inst.include_subclasses) {
+                            includeSubs = true;
+                        }
+                    }
+                    await selectType(nodeShapeIRI, false, false, includeSubs);
                     var instanceIRI = null;
                     if (instance_pid) {
                         instanceIRI = toIRI(instance_pid, allPrefixes);
@@ -105,7 +114,7 @@ export function useNavigation(
     }
 
     async function handleInternalNavigation({ recordClass, recordPID }) {
-        await selectType(recordClass, true);
+        await selectType(recordClass, true, false, false);
         selectedItem.value = [recordClass];
         textMatchType.value = 'exact';
         searchText.value = recordPID;
@@ -113,7 +122,7 @@ export function useNavigation(
 
     function goBack() {
         var previousView = internalHistory.value.pop();
-        selectType(previousView.iri, true, true);
+        selectType(previousView.iri, true, true, previousView.includeSubs);
         searchText.value = previousView.searchText;
     }
 

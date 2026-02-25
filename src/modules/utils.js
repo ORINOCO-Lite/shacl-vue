@@ -715,6 +715,17 @@ export function includeClass(class_iri, showHide_config, allPrefixes) {
     }
 }
 
+export function includePriorityClass(class_iri, configVarsMain, allPrefixes) {
+    var classCurie = toCURIE(class_iri, allPrefixes);
+    if (configVarsMain.priorityClasses?.length) {
+        var inst = findObjectByKey(configVarsMain.priorityClasses, 'class', classCurie);
+        if (inst) {
+            return true;
+        }
+    }
+    return false;
+}
+
 export function getNotes(shape) {
     let notes = shape?.[SKOS.note.value];
     if (notes) {

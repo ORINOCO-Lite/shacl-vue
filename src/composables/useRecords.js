@@ -22,6 +22,7 @@ const { namedNode } = DataFactory;
 
 export function useRecords(
     allPrefixes,
+    allSubClasses,
     config,
     configVarsMain,
     fetchFromService,
@@ -48,6 +49,7 @@ export function useRecords(
     const classRecordsLoading = ref(false);
     const headingHover = ref(false);
     const orderTopDown = ref(true);
+    const includeSubClasses = ref(false);
     let hideTimeout = null
     let debounceTypingTimer = null;
 
@@ -253,11 +255,30 @@ export function useRecords(
             return [];
         }
         // find nodes with triple predicate == rdf:type, and triple object == the selected class
-        var quads = rdfDS.getLiteralAndNamedNodes(
-            namedNode(RDF.type.value),
-            selectedIRI.value,
-            allPrefixes
-        );
+        // if the class is a configured priority class with include_subclasses = true, find nodes
+        // for the selected class and all of its subclasses
+        var quads;
+        if (includeSubClasses.value) {
+            let allclass_array = [selectedIRI.value]
+            if (Array.isArray(allSubClasses[selectedIRI.value]) && allSubClasses[selectedIRI.value].length > 0 ) {
+                allclass_array = allclass_array.concat(allSubClasses[selectedIRI.value])
+            }
+            quads = [];
+            for (const cl of allclass_array) {
+                const mySubArray = rdfDS.getLiteralAndNamedNodes(
+                    namedNode(RDF.type.value),
+                    cl,
+                    allPrefixes
+                )
+                quads = quads.concat(mySubArray);
+            }
+        } else {
+            quads = rdfDS.getLiteralAndNamedNodes(
+                namedNode(RDF.type.value),
+                selectedIRI.value,
+                allPrefixes
+            );
+        }
         // Create list items from quads
         var instanceItemsArr = [];
         quads.forEach((quad) => {
@@ -353,6 +374,7 @@ export function useRecords(
         filteredInstanceItemsComp,
         getInstanceItems,
         headingHover,
+        includeSubClasses,
         instanceItemsComp,
         isFetchingPage,
         matchedInstanceItemsComp,

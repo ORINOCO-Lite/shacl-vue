@@ -86,7 +86,7 @@
                     >
                         <template #default>
                             <NodeShapeViewer
-                                :classIRI="props.selectedIRI"
+                                :classIRI="item.props.quad ? item.props.quad.object.value : props.selectedIRI"
                                 :quad="item.props.quad"
                                 :key="props.selectedIRI + '-' + item.title"
                                 :formOpen="formOpen"
