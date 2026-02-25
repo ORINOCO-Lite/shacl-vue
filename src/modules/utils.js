@@ -302,6 +302,56 @@ export function getSubjectQuad(subj, graph) {
     }
 }
 
+export function getReferencingRecords(objVal, graph) {
+    let referencingRecords = {};
+    const firstLevelQuads = graph.getQuads(
+        null,
+        null,
+        namedNode(objVal),
+        null
+    );
+    for (const q of firstLevelQuads) {
+        if (q.subject.termType === 'BlankNode') {
+            var secondLevelQuads = graph.getQuads(
+                null,
+                null,
+                q.subject,
+                null
+            );
+            if (secondLevelQuads && secondLevelQuads.length) {
+                if (!referencingRecords.hasOwnProperty(secondLevelQuads[0].predicate.value)) {
+                    referencingRecords[secondLevelQuads[0].predicate.value] = []
+                }
+                referencingRecords[secondLevelQuads[0].predicate.value].push({
+                    record_id: secondLevelQuads[0].subject.value
+                })
+                var sQ = getSubjectQuad(secondLevelQuads[0].subject, graph)
+                if (sQ) {
+                    referencingRecords[secondLevelQuads[0].predicate.value].at(-1).class_iri = sQ.object.value
+                    referencingRecords[secondLevelQuads[0].predicate.value].at(-1).quad = sQ
+                }
+                if (secondLevelQuads.length > 1) {
+                    console.error("! secondLevelQuads has length > 1 !")
+                }
+            }
+        } else {
+            if (!referencingRecords.hasOwnProperty(q.predicate.value)) {
+                referencingRecords[q.predicate.value] = []
+            }
+            referencingRecords[q.predicate.value].push({
+                record_id: q.subject.value
+            })
+            var sQ = getSubjectQuad(q.subject, graph)
+            if (sQ) {
+                referencingRecords[q.predicate.value].at(-1).class_iri = sQ.object.value
+                referencingRecords[q.predicate.value].at(-1).quad = sQ
+            }
+
+        }
+    }
+    return referencingRecords
+}
+
 export function objectsEqual(obj1, obj2) {
     if (Object.keys(obj1).length !== Object.keys(obj2).length) {
         return false;

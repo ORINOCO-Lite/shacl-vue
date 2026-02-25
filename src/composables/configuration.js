@@ -52,6 +52,7 @@ const mainVarsToLoad = {
         NodeShapeViewer: {
             recordNumberStepSize: 5,
             textTruncateWidth: "85%",
+            hideBackLinks: true,
         },
         URIEditor: {
             default: "curie",

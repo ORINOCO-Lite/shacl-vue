@@ -75,46 +75,12 @@
             </span>
         </v-card-subtitle>
         <v-card-text v-if="!props.formOpen" :class="mobile ? 'text-caption' : ''">
-            <strong>Persistent Identifier</strong>: &nbsp;{{ record.title}}<br/>
+            <v-row align="stretch">
+                <v-col :cols="showBackLinks ? 6 : 12">
+                    <strong>Persistent Identifier</strong>: &nbsp;{{ record.title}}<br/>
 
-            <!-- Literal nodes -->
-            <span v-for="(v, k, index) in record.triples['Literal']">
-                <span v-if="propertyShapes[k]">
-                    <strong>
-                        {{
-                            nameOrCURIE(
-                                propertyShapes[k],
-                                shapesDS.data.prefixes,
-                                true
-                            )
-                        }}
-                    </strong>:
-                </span>
-                <span v-else>
-                    <strong>{{ k }}</strong>:
-                </span>
-                <span v-for="(el, i) in v.values">
-                    <span v-if="i < showCounts['Literal'][k]">
-                        <span v-if="v.values.length > 1"><br/>&nbsp;-</span>
-                        &nbsp;<LiteralNodeViewer v-if="el.value" :textVal="el.value" :wrap="textWrapping" :width="textTruncateWidth"></LiteralNodeViewer>
-                    </span>
-                </span>
-                <br/>
-                <MoreOrLessRecordsViewer
-                    :records="v.values"
-                    v-model:count="showCounts['Literal'][k]"
-                    :stepSize="defaultStep"
-                ></MoreOrLessRecordsViewer>
-            </span>
-
-
-            <!-- Named nodes -->
-            <span v-if="fetchingRecords">
-                <v-skeleton-loader type="paragraph"></v-skeleton-loader>
-            </span>
-            <span v-else>
-                <span v-for="(v, k, index) in record.triples['NamedNode']">
-                    <span v-if="k != RDF.type.value">
+                    <!-- Literal nodes -->
+                    <span v-for="(v, k, index) in record.triples['Literal']">
                         <span v-if="propertyShapes[k]">
                             <strong>
                                 {{
@@ -124,92 +90,136 @@
                                         true
                                     )
                                 }}
-                            </strong>:&nbsp;&nbsp;<MoreOrLessRecordsViewer
-                                :records="v.values"
-                                v-model:count="showCounts['NamedNode'][k]"
-                                :stepSize="defaultStep"
-                            ></MoreOrLessRecordsViewer>
-                            <span v-for="(el, i) in v.values">
-                                <span v-if="i < showCounts['NamedNode'][k]">
-                                    <span v-if="v.values.length > 1"><br />&nbsp;-&nbsp;</span>
-                                    <NamedNodeViewer
-                                        v-if="el.value"
-                                        :textVal="el.value"
-                                        :prefLabel="
-                                            getPrefLabel(el, rdfDS, allPrefixes)
-                                        "
-                                        :displayLabel="
-                                            getRecordDisplayLabel(el, rdfDS, allPrefixes, configVarsMain)
-                                        "
-                                        :quad="
-                                            getPidQuad(el.value, rdfDS.data.graph)
-                                        "
-                                        :targetClass="
-                                            propertyShapes[k][SHACL.class.value]
-                                        "
-                                    >
-                                    </NamedNodeViewer>
+                            </strong>:
+                        </span>
+                        <span v-else>
+                            <strong>{{ k }}</strong>:
+                        </span>
+                        <span v-for="(el, i) in v.values">
+                            <span v-if="i < showCounts['Literal'][k]">
+                                <span v-if="v.values.length > 1"><br/>&nbsp;-</span>
+                                &nbsp;<LiteralNodeViewer v-if="el.value" :textVal="el.value" :wrap="textWrapping" :width="textTruncateWidth"></LiteralNodeViewer>
+                            </span>
+                        </span>
+                        <br/>
+                        <MoreOrLessRecordsViewer
+                            :records="v.values"
+                            v-model:count="showCounts['Literal'][k]"
+                            :stepSize="defaultStep"
+                        ></MoreOrLessRecordsViewer>
+                    </span>
+
+
+                    <!-- Named nodes -->
+                    <span v-if="fetchingRecords">
+                        <v-skeleton-loader type="paragraph"></v-skeleton-loader>
+                    </span>
+                    <span v-else>
+                        <span v-for="(v, k, index) in record.triples['NamedNode']">
+                            <span v-if="k != RDF.type.value">
+                                <span v-if="propertyShapes[k]">
+                                    <strong>
+                                        {{
+                                            nameOrCURIE(
+                                                propertyShapes[k],
+                                                shapesDS.data.prefixes,
+                                                true
+                                            )
+                                        }}
+                                    </strong>:&nbsp;&nbsp;<MoreOrLessRecordsViewer
+                                        :records="v.values"
+                                        v-model:count="showCounts['NamedNode'][k]"
+                                        :stepSize="defaultStep"
+                                    ></MoreOrLessRecordsViewer>
+                                    <span v-for="(el, i) in v.values">
+                                        <span v-if="i < showCounts['NamedNode'][k]">
+                                            <span v-if="v.values.length > 1"><br />&nbsp;-&nbsp;</span>
+                                            <NamedNodeViewer
+                                                v-if="el.value"
+                                                :textVal="el.value"
+                                                :prefLabel="
+                                                    getPrefLabel(el, rdfDS, allPrefixes)
+                                                "
+                                                :displayLabel="
+                                                    getRecordDisplayLabel(el, rdfDS, allPrefixes, configVarsMain)
+                                                "
+                                                :quad="
+                                                    getPidQuad(el.value, rdfDS.data.graph)
+                                                "
+                                                :targetClass="
+                                                    propertyShapes[k][SHACL.class.value]
+                                                "
+                                            >
+                                            </NamedNodeViewer>
+                                        </span>
+                                    </span>
+                                </span>
+                                <span v-else>
+                                    <strong>{{ k }}</strong
+                                    >:
+                                    <span v-for="(el, i) in v.values">
+                                        <span v-if="i < showCounts['NamedNode'][k]">
+                                            <span v-if="v.values.length > 1"><br />&nbsp;-</span>
+                                            &nbsp;{{ el.value }}
+                                        </span>
+                                    </span>
+                                </span>
+                                <br>                        
+                            </span>
+                        </span>
+                    </span>
+                    <!-- Now show all blank nodes for which a display label has been configured, which makes them special-->
+                    <!-- TODO: how do we deal with preflabel here ??? -->
+                    <span v-for="(v,k) in specialBlankNodes">
+                        <strong>
+                            {{
+                                nameOrCURIE(
+                                    propertyShapes[k],
+                                    shapesDS.data.prefixes,
+                                    true
+                                )
+                            }}
+                        </strong>:&nbsp;&nbsp;<MoreOrLessRecordsViewer
+                            :records="v.items.map(i => i.value)"
+                            v-model:count="showCounts['BlankNodeSpecial'][k]"
+                            :stepSize="defaultStep"
+                        ></MoreOrLessRecordsViewer>
+                        <span v-for="(item, i) in v.items">
+                            <span v-if="i < showCounts['BlankNodeSpecial'][k]" class="line-item">
+                                <span v-if="item.keyPropertyRole?.classIRI && item.keyPropertyRole?.recordPID">
+                                    &nbsp;-&nbsp;
+                                    <v-tooltip location="top start">
+                                        <template v-slot:activator="{ props }">
+                                            <a
+                                                v-bind="props"
+                                                style="cursor: pointer"
+                                                @click.prevent="selectNamedNode(item.keyPropertyRole.classIRI, item.keyPropertyRole.recordPID)"
+                                                >{{ item.displayLabel }}</a
+                                            >
+                                        </template>
+                                        <template v-slot:default="{ isActive }">
+                                            <v-icon >{{ getClassIcon(item.keyPropertyRole.classIRI, allPrefixes) }}</v-icon>
+                                            {{ getDisplayName(item.keyPropertyRole.classIRI, configVarsMain, allPrefixes, shapesDS.data.nodeShapes[item.keyPropertyRole.classIRI]) }}
+                                        </template>
+                                    </v-tooltip>
+                                    
+                                </span>
+                                <span v-else>
+                                    &nbsp;-&nbsp;<LiteralNodeViewer :textVal="item.displayLabel" :wrap="'wrap'" :allowLink="false"></LiteralNodeViewer>
                                 </span>
                             </span>
                         </span>
-                        <span v-else>
-                            <strong>{{ k }}</strong
-                            >:
-                            <span v-for="(el, i) in v.values">
-                                <span v-if="i < showCounts['NamedNode'][k]">
-                                    <span v-if="v.values.length > 1"><br />&nbsp;-</span>
-                                    &nbsp;{{ el.value }}
-                                </span>
-                            </span>
-                        </span>
-                        <br>                        
                     </span>
-                </span>
-            </span>
-            <!-- Now show all blank nodes for which a display label has been configured, which makes them special-->
-            <!-- TODO: how do we deal with preflabel here ??? -->
-            <span v-for="(v,k) in specialBlankNodes">
-                <strong>
-                    {{
-                        nameOrCURIE(
-                            propertyShapes[k],
-                            shapesDS.data.prefixes,
-                            true
-                        )
-                    }}
-                </strong>:&nbsp;&nbsp;<MoreOrLessRecordsViewer
-                    :records="v.items.map(i => i.value)"
-                    v-model:count="showCounts['BlankNodeSpecial'][k]"
-                    :stepSize="defaultStep"
-                ></MoreOrLessRecordsViewer>
-                <span v-for="(item, i) in v.items">
-                    <span v-if="i < showCounts['BlankNodeSpecial'][k]" class="line-item">
-                        <span v-if="item.keyPropertyRole?.classIRI && item.keyPropertyRole?.recordPID">
-                            &nbsp;-&nbsp;
-                            <v-tooltip location="top start">
-                                <template v-slot:activator="{ props }">
-                                    <a
-                                        v-bind="props"
-                                        style="cursor: pointer"
-                                        @click.prevent="selectNamedNode(item.keyPropertyRole.classIRI, item.keyPropertyRole.recordPID)"
-                                        >{{ item.displayLabel }}</a
-                                    >
-                                </template>
-                                <template v-slot:default="{ isActive }">
-                                    <v-icon >{{ getClassIcon(item.keyPropertyRole.classIRI, allPrefixes) }}</v-icon>
-                                    {{ getDisplayName(item.keyPropertyRole.classIRI, configVarsMain, allPrefixes, shapesDS.data.nodeShapes[item.keyPropertyRole.classIRI]) }}
-                                </template>
-                            </v-tooltip>
-                            
-                        </span>
-                        <span v-else>
-                            &nbsp;-&nbsp;<LiteralNodeViewer :textVal="item.displayLabel" :wrap="'wrap'" :allowLink="false"></LiteralNodeViewer>
-                        </span>
-                    </span>
-                </span>
-            </span>
+                </v-col>
+                <v-col v-if="showBackLinks && !hideBackLinks" cols="auto" class="d-flex">
+                    <v-divider vertical />
+                </v-col>
+                <v-col>
+                    <BackLinkViewer v-if="firstUpdateDone && !hideBackLinks" v-show="showBackLinks" :record="record" @has-referencing-records="showBackLinks = true"></BackLinkViewer>
+                </v-col>
+            </v-row>
             <!-- Blank nodes -->
-            <br />
+            <span v-if="showBackLinks && !hideBackLinks"><br /></span>
             <v-btn
                 no-gutters
                 v-if="Object.keys(record.triples['BlankNode']).length > 0"
@@ -324,6 +334,7 @@ import MoreOrLessRecordsViewer from '@/components/MoreOrLessRecordsViewer.vue';
 import SpecialButton from '@/components/SpecialButton.vue'
 import { useCompConfig } from '@/composables/useCompConfig';
 import { useDisplay } from 'vuetify'
+import BackLinkViewer from './BackLinkViewer.vue';
 const { mobile } = useDisplay()
 // Define component properties
 const props = defineProps({
@@ -380,6 +391,14 @@ const fetchingRecords = ref(false);
 const canEditClass = ref(false);
 const showSpecialButtons = ref(false);
 const specialButtons = reactive({});
+const showBackLinks = ref(false);
+const firstUpdateDone = ref(false);
+const hideBackLinksConfig = componentConfig?.hideBackLinks;
+const hideBackLinks = ref(true);
+if (hideBackLinksConfig === false || Array.isArray(hideBackLinksConfig) &&
+    !hideBackLinksConfig.includes(toCURIE(props.classIRI, allPrefixes))) {
+        hideBackLinks.value = false
+}
 
 const emit = defineEmits(['namedNodeSelected']);
 function selectNamedNode(recordClass, recordPID) {
@@ -398,6 +417,7 @@ onBeforeMount(async () => {
     fetchingRecords.value = true;
     await updateRecord(true);
     fetchingRecords.value = false;
+    firstUpdateDone.value = true;
     let recordPIDprefix = toCURIE(props.quad.subject.value, allPrefixes, 'parts').prefix;
     if (configVarsMain['idResolvesExternally'].indexOf(recordPIDprefix) >= 0) {
         resolveExternally.value = true;
