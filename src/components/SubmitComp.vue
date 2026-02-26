@@ -1,5 +1,5 @@
 <template>
-    <v-card>
+    <v-card id="submitcomp">
         <v-card-title>Record submission</v-card-title>
         <v-card-text>
             <v-skeleton-loader :loading="awaitingResponse" type="paragraph">
@@ -105,11 +105,35 @@
             <v-btn v-if="responseReceived" @click="clearSubmitErrors()">
                 <v-icon>mdi-check-circle-outline</v-icon> OK
             </v-btn>
+            <v-btn prepend-icon="mdi-close-box" @click="props.openCloseFn()">Close</v-btn>
         </v-card-actions>
     </v-card>
+
+    <v-dialog
+        attach="#submitcomp"
+        v-model="tokenDialog"
+        width="auto"
+        @click:outside="tokenDialog = false"
+        color="warning"
+    >
+        <v-card>
+            <v-card-title><v-icon>mdi-alert</v-icon> Token not set</v-card-title>
+            <v-card-text>
+                Please enter a valid token in the <v-icon>mdi-key</v-icon>Tokens tab under
+                <v-icon>mdi-cog</v-icon>Settings in the application header
+                before submitting your records
+            </v-card-text>
+            <v-card-actions>
+                <v-btn prepend-icon="mdi-close-box" @click="tokenDialog = false"
+                    >Close</v-btn
+                >
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
 </template>
 
-<script setup>import { ref, onBeforeMount, inject } from 'vue';
+<script setup>
+import { ref, inject } from 'vue';
 import { getDisplayName, getRecordDisplayLabel, getRecordQuads, quadsToTTL, dlTTL} from '@/modules/utils';
 
 import { useToken } from '@/composables/tokens';
@@ -117,15 +141,11 @@ import { DataFactory, Store } from 'n3';
 const { namedNode } = DataFactory;
 
 const props = defineProps({
-    dialog: Boolean,
+    openCloseFn: Function,
 });
 
 const selectedNodesToSubmit = defineModel('selectedNodesToSubmit')
-const submitForm = ref(null);
-const tokenval = ref(null);
-const { token, setToken, clearToken } = useToken();
 const submitRdfData = inject('submitRdfData');
-const tokenExists = ref(false);
 const shapesDS = inject('shapesDS');
 const rdfDS = inject('rdfDS');
 const nodesToSubmit = inject('nodesToSubmit');
@@ -134,6 +154,8 @@ const config = inject('config');
 const configVarsMain = inject('configVarsMain');
 const getClassIcon = inject('getClassIcon');
 const allPrefixes = inject('allPrefixes');
+const tokenWarning = inject('tokenWarning');
+const tokenDialog = ref(false);
 const awaitingResponse = ref(false);
 const responseReceived = ref(false);
 const responseSuccess = ref(false);
@@ -155,13 +177,6 @@ function toggleFailureResponse() {
     }
 }
 
-const rules = [
-    (value) => {
-        if (value) return true;
-        return 'A token is required';
-    },
-];
-
 function clearSubmitErrors() {
     responseSuccess.value = false;
     responseFailure.value = false;
@@ -174,13 +189,11 @@ function clearSubmitErrors() {
 
 async function submit() {
     // Validate the form first
-    if (!tokenExists.value) {
-        const { valid } = await submitForm.value.validate();
-        if (!valid) {
-            console.log('invalid');
-            return;
-        }
-        setToken(tokenval.value);
+    const { token } = useToken();
+    if (!(token.value !== null && token.value !== 'null')) {
+        tokenWarning.value = true;
+        tokenDialog.value = true;
+        return;
     }
     awaitingResponse.value = true;
     var submit_result = await submitRdfData(
@@ -228,12 +241,6 @@ async function downloadTTL() {
     ttlstring = '\n' + ttlstring;
     dlTTL(ttlstring, 'submit_rdf_data_' + Date.now())
 }
-
-onBeforeMount(() => {
-    if (token.value !== null && token.value !== 'null') {
-        tokenExists.value = true;
-    }
-});
 
 async function copyErrorText(text, i) {
     try {

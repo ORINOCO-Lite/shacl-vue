@@ -226,7 +226,7 @@
                                 :width="800"
                                 app
                             >
-                                <SubmitComp v-model:selectedNodesToSubmit="selectedNodesToSubmit"></SubmitComp>
+                                <SubmitComp v-if="submissionDrawer" v-model:selectedNodesToSubmit="selectedNodesToSubmit" :openCloseFn="submitFn"></SubmitComp>
                             </v-navigation-drawer>
                         </span>
                     </v-layout>
