@@ -303,53 +303,53 @@ export function getSubjectQuad(subj, graph) {
 }
 
 export function getReferencingRecords(objVal, graph) {
-    let referencingRecords = {};
-    const firstLevelQuads = graph.getQuads(
-        null,
-        null,
-        namedNode(objVal),
-        null
-    );
-    for (const q of firstLevelQuads) {
-        if (q.subject.termType === 'BlankNode') {
-            var secondLevelQuads = graph.getQuads(
-                null,
-                null,
-                q.subject,
-                null
-            );
-            if (secondLevelQuads && secondLevelQuads.length) {
-                if (!referencingRecords.hasOwnProperty(secondLevelQuads[0].predicate.value)) {
-                    referencingRecords[secondLevelQuads[0].predicate.value] = []
-                }
-                referencingRecords[secondLevelQuads[0].predicate.value].push({
-                    record_id: secondLevelQuads[0].subject.value
-                })
-                var sQ = getSubjectQuad(secondLevelQuads[0].subject, graph)
-                if (sQ) {
-                    referencingRecords[secondLevelQuads[0].predicate.value].at(-1).class_iri = sQ.object.value
-                    referencingRecords[secondLevelQuads[0].predicate.value].at(-1).quad = sQ
-                }
-                if (secondLevelQuads.length > 1) {
-                    console.error("! secondLevelQuads has length > 1 !")
-                }
-            }
-        } else {
-            if (!referencingRecords.hasOwnProperty(q.predicate.value)) {
-                referencingRecords[q.predicate.value] = []
-            }
-            referencingRecords[q.predicate.value].push({
-                record_id: q.subject.value
-            })
-            var sQ = getSubjectQuad(q.subject, graph)
-            if (sQ) {
-                referencingRecords[q.predicate.value].at(-1).class_iri = sQ.object.value
-                referencingRecords[q.predicate.value].at(-1).quad = sQ
-            }
+    const startNode = namedNode(objVal);
+    const visited = new Set();
+    const referencingRecords = {};
+    // Function to walk up the blank node ladder until reaching a named node subject
+    function walkUp(currentNode, path = [], predicates = []) {
+        const incomingQuads = graph.getQuads(
+            null,
+            null,
+            currentNode,
+            null
+        );
 
+        for (const q of incomingQuads) {
+            const visitKey = `${q.subject.value}-${q.predicate.value}-${q.object.value}`;
+            if (visited.has(visitKey)) continue;
+            visited.add(visitKey);
+            const newPath = [...path, q];
+            const newPredicates = [...predicates, q.predicate.value];
+            if (q.subject.termType === 'NamedNode') {
+                // We've reached the root named node
+                // If it's the same as the starting node,
+                // exclude it to prevent circular referencing
+                if (q.subject.value === startNode.value) {
+                    continue;
+                }
+                if (!referencingRecords[q.predicate.value]) {
+                    referencingRecords[q.predicate.value] = [];
+                }
+                const record = {
+                    record_id: q.subject.value,
+                    path: newPath,
+                    predicates: newPredicates
+                };
+                const sQ = getSubjectQuad(q.subject, graph);
+                if (sQ) {
+                    record.class_iri = sQ.object.value;
+                    record.quad = sQ;
+                }
+                referencingRecords[q.predicate.value].push(record);
+            }
+            else if (q.subject.termType === 'BlankNode') {
+                walkUp(q.subject, newPath, newPredicates);
+            }
         }
     }
-    return referencingRecords
+    walkUp(startNode);
+    return referencingRecords;
 }
 
 export function objectsEqual(obj1, obj2) {
