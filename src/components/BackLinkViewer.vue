@@ -1,5 +1,5 @@
 <template>
-    <h4 v-if="Object.keys(refRecords).length" style="margin-bottom: 1em;" >Records referencing <em>{{props.record.displayLabel}}</em>:</h4>
+    <h4 v-if="Object.keys(refRecords).length" style="margin-bottom: 1em;">Records referencing this record:</h4>
     <div v-for="(arr, key) in refRecords" style="margin-bottom: 0.5em;">
         <em>via <strong>{{makeReadable(toCURIE(key, allPrefixes, 'parts').property)}}</strong></em>:
         <span v-for="r in arr">
