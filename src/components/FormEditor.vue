@@ -145,7 +145,7 @@ import {
     nextTick,
     watch,
 } from 'vue';
-import { SHACL } from '@/modules/namespaces';
+import { SHACL, RDFS } from '@/modules/namespaces';
 import {
     addCodeTagsToText,
     getDisplayName,
@@ -274,8 +274,8 @@ watch(
 // ------------------- //
 const formattedDescription = computed(() => {
     // For the class description, use a regular expression to replace text between backticks with <code> tags
-    if (shape_obj && shape_obj[SHACL.description.value]) {
-        return addCodeTagsToText(shape_obj[SHACL.description.value]);
+    if (shape_obj && shape_obj[RDFS.comment.value]) {
+        return addCodeTagsToText(shape_obj[RDFS.comment.value]);
     } else {
         return '-';
     }

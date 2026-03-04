@@ -70,7 +70,7 @@ import WizardGroup from '@/components/WizardGroup.vue'
 import { showWizardGroup } from '@/composables/useWizard'
 import { inject, computed} from 'vue';
 import { addCodeTagsToText, getDisplayName} from '@/modules/utils'
-import { SHACL } from '@/modules/namespaces'
+import { RDFS, SHACL } from '@/modules/namespaces'
 
 // ----- //
 // PROPS //
@@ -101,7 +101,7 @@ const shapesDS = inject('shapesDS')
 const formattedDescription = computed(() => {
     // For the class description, use a regular expression to replace text between backticks with <code> tags
     if (props.selectedShape) {
-        return addCodeTagsToText(props.selectedShape[SHACL.description.value]);
+        return addCodeTagsToText(props.selectedShape[RDFS.comment.value]);
     } else {
         return '-';
     }

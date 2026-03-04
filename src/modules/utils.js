@@ -249,7 +249,7 @@ export function getDisplayName(uri, configVarsMain, prefixes, shape = {}) {
     // - reference: the reference of the nodeshape CURIE (e.g. DSCOrganization)
     // - curie: the full CURIE of the nodeshape IRI (e.g. trr379cps:DSCOrganization)
     let mode = configVarsMain.classNameDisplay;
-    let name = shape.hasOwnProperty(SHACL.name.value) ? shape[SHACL.name.value] : null;
+    let name = shape.hasOwnProperty(RDFS.label.value) ? shape[RDFS.label.value] : null;
     let reference = toCURIE(uri, prefixes, 'parts').property;
     let curie = toCURIE(uri, prefixes);
     if (mode == 'name') {
