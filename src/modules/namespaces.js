@@ -12,7 +12,7 @@ export const DLDIST = namespace(
 export const DLTHING = namespace(
     'https://concepts.datalad.org/s/thing/unreleased/'
 );
-export const DLTHINGS = namespace('https://concepts.datalad.org/s/things/v1/');
+export const DLTHINGS = namespace('https://concepts.datalad.org/s/things/v2/');
 export const DLTYPES = namespace(
     'https://concepts.datalad.org/s/types/v1/'
 );
