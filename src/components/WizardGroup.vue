@@ -16,7 +16,7 @@
                 </span>
             </template>
         </v-tooltip>
-        <v-dialog v-model="wizardDialog" max-width="800px">
+        <v-dialog v-model="wizardDialog" max-width="1000px">
             <WizardEditor :wizardConfig="selectedWizard" @save="saveWizard" @cancel="handleWizardCancel"></WizardEditor>
         </v-dialog>
     </span>
