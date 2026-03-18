@@ -662,6 +662,14 @@ export function getContent(content, key) {
     }
 }
 
+export function getContentType(content, key) {
+    if (key.startsWith('content:')) {
+        let contentKey = key.replace('content:','')
+        return content[contentKey].type
+    }
+    return undefined
+}
+
 export function fillStringTemplate(template, params) {
     return template.replace(/\{([a-zA-Z0-9_.]+)\}/g, (match, keyPath) => {
         if (keyPath === '_randomUUID') {
