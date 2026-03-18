@@ -1,9 +1,11 @@
 import { ref, reactive } from "vue";
-import { getContent, fillStringTemplate, findObjectByKey, findObjectIndexByKey, nodeShapeHasProperty, getIcon} from "@/modules/utils";
+import { getContent, fillStringTemplate, findObjectByKey, findObjectIndexByKey, nodeShapeHasProperty, getIcon, getContentType} from "@/modules/utils";
 import { toCURIE, toIRI } from "shacl-tulip";
 import { RDF } from "@/modules/namespaces";
 import { DataFactory } from 'n3';
 const { namedNode, quad } = DataFactory;
+import { useNunjucks } from "@/composables/useNunjucks";
+const { fillNunjucksTemplate } = useNunjucks();
 
 export function showWizardGroup(configVarsMain, context, classUri, allPrefixes, shapesDS) {
     console.log("Checking if wizard group should be shown")
@@ -54,6 +56,7 @@ export function useWizard() {
             for (const wizard of configVarsMain.wizardEditorSelection?.[classCurie]?.[context]) {
                 console.log(`adding wizard '${wizard}' for class '${classCurie}' and context '${context}'`)
                 wizardEditors[wizard] = configVarsMain.wizardEditors[wizard]
+                wizardEditors[wizard].template_type = getContentType(configVarsMain.content, wizardEditors[wizard].template)
                 wizardEditors[wizard].template = getContent(configVarsMain.content, wizardEditors[wizard].template)
                 wizardEditors[wizard].iconFig = getIcon(wizardEditors[wizard].icon, configVarsMain)
             }
@@ -66,6 +69,7 @@ export function useWizard() {
                     for (const wizard of configVarsMain.wizardEditorSelection?._slots[slot][context]) {
                         if (wizard in wizardEditors) continue;
                         wizardEditors[wizard] = configVarsMain.wizardEditors[wizard]
+                        wizardEditors[wizard].template_type = getContentType(configVarsMain.content, wizardEditors[wizard].template)
                         wizardEditors[wizard].template = getContent(configVarsMain.content, wizardEditors[wizard].template)
                         wizardEditors[wizard].iconFig = getIcon(wizardEditors[wizard].icon, configVarsMain)
                     }
@@ -95,7 +99,12 @@ export function useWizard() {
             wizardData.pid = subject_uri;
         }
         // Now we fill string template
-        let newTTL = fillStringTemplate(wizardData._template, wizardData)
+        let newTTL
+        if (wizardData._template_type == 'nunjucks') {
+            newTTL = fillNunjucksTemplate(wizardData._template, wizardData)
+        } else {
+            newTTL = fillStringTemplate(wizardData._template, wizardData)
+        }
         // And then parse TTL, adding quads to graph data
         let newQuads = await rdfDS.parseTTLandDedup(newTTL);
         rdfDS.triggerReactivity();

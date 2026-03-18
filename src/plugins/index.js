@@ -6,7 +6,9 @@
 
 // Plugins
 import vuetify from './vuetify';
+import runtimePlugins from './runtime-plugins';
 
 export function registerPlugins(app) {
     app.use(vuetify);
+    app.use(runtimePlugins)
 }

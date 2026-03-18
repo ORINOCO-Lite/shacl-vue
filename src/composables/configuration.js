@@ -311,6 +311,9 @@ export function useConfig(url) {
         if (configVarsMain.content && Object.keys(configVarsMain.content).length > 0) {
             for (const src of Object.keys(configVarsMain.content)) {
                 configVarsMain.content[src].value = await loadContent(configVarsMain.content[src].url, 'text')
+                if (configVarsMain.content[src].url.includes('nunjucks')) {
+                    configVarsMain.content[src].type = 'nunjucks';
+                }
             }
         }
     }
