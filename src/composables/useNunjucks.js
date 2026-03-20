@@ -7,9 +7,24 @@ const env = nunjucks.configure({
     lstripBlocks: true
 })
 
-env.addFilter('ttl', str =>
-  `"${String(str).replace(/"/g, '\\"')}"`
-)
+env.addFilter('ttl', (value) => {
+  if (value === null || value === undefined) return '""'
+  let str = String(value)
+  // escape backslashes first
+  str = str.replace(/\\/g, '\\\\')
+  // if string has return, encase in triple quotes,
+  // and escape triple quotes inside
+  if (str.includes('\n')) {
+    str = str.replace(/"""/g, '\\"\\"\\"')
+    return `"""${str}"""`
+  }
+  // escape quotes + control chars
+  str = str
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+  return `"${str}"`
+})
 
 env.addGlobal('_randomUUID', () => crypto.randomUUID())
 
