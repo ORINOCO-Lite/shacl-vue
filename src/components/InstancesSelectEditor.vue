@@ -303,10 +303,9 @@ import {
     watchEffect,
     onBeforeMount,
     ref,
-    provide,
     computed,
     nextTick,
-    reactive
+    reactive,
 } from 'vue';
 import { useRules } from '@/composables/rules';
 import { DataFactory } from 'n3';
@@ -476,21 +475,8 @@ const { subValues, internalValue } = useBaseInput(
 );
 
 const newNodeIdx = ref(null);
-const addItemList = ref(null);
-
 const selectedAddItemShapeIRI = ref(null);
 const addForm = inject('addForm');
-const lastSavedNode = inject('lastSavedNode');
-const openForms = inject('openForms');
-
-const cancelDialogForm = () => {
-    newNodeIdx.value = null;
-};
-provide('cancelFormHandler', cancelDialogForm);
-const saveDialogForm = () => {
-    newNodeIdx.value = null;
-};
-provide('saveFormHandler', saveDialogForm);
 let debounceTypingTimer = null;
 
 const showClearIcon = computed(() => {
@@ -685,80 +671,6 @@ const debouncedScrollEnd = debounce(async () => {
     }
 }, 1000);
 
-// trigger whenever lastSavedNode is updated, i.e. whenever a form is saved
-watch(
-    lastSavedNode,
-    async (savedNode) => {
-        if (savedNode) {
-            if (!openForms.at(-1).activatedInstancesSelectEditor) {
-                return;
-            }
-            // First check if the current component is also the activatedInstancesSelectEditor
-            // If not, do nothing
-            if (
-                openForms.at(-1).activatedInstancesSelectEditor.nodeshape_iri ==
-                    props.node_uid &&
-                openForms.at(-1).activatedInstancesSelectEditor.node_iri ==
-                    props.node_idx &&
-                openForms.at(-1).activatedInstancesSelectEditor.predicate_iri ==
-                    props.triple_uid &&
-                openForms.at(-1).activatedInstancesSelectEditor.predicate_idx ==
-                    props.triple_idx
-            ) {
-                // If this is the instancesSelectEditor instance that activated the recently saved
-                // and closed form, we want to set the selected instance as the saved node
-                // This is the format of savedNode:
-                // {
-                //     nodeshape_iri: nodeshape_iri,
-                //     node_iri: subject_iri
-                // }
-                // First, let's make sure the list is updated to include the recently saved node:
-                await getItemsToList();
-                fetchedItemCount.value = itemsToList.value.length;
-                // Then we need to set the selectedInstance. The itemsToList has items as objects,
-                // with value = quad.subject.value.
-                // We need to find the item that has the value being the same as the saved node's node_iri
-                // This holds for named node records. However, the process is different for blank node
-                // records since the introduction of the blank node deduplication process. In getItemsToList,
-                // the deduplication will assign a quad with a new blank node as subject to item.props.itemQuad.
-                // Hence the item value will not be the same anymore as logged by savedNode.node_iri. For
-                // blank nodes, we have to look at the subject value of all the relatedQuads, because they
-                // reflect the 'true' state before deduplication.
-                let inst = null
-                for (const listItem of itemsToList.value) {
-                    if (listItem.props.itemQuad.subject.termType === "NamedNode") {
-                        if (listItem.value == savedNode.node_iri) {
-                            inst = listItem;
-                            break;
-                        }
-                    } else {
-                        const originalBNid = Array.from(new Set(listItem.props.relatedQuads.map((x) => x.subject.value)))[0];
-                        if (originalBNid == savedNode.node_iri) {
-                            inst = listItem;
-                            break;
-                        }
-                    }
-                }
-                if (inst) {
-                    // we need to use selectItem so as to trigger processTempItem
-                    selectItem(inst)
-                } else {
-                    console.log(
-                        'A node was recently saved but it could not be found in the itemsToList and was therefore not set as the selectedItem'
-                    );
-                }
-                openForms.at(-1).activatedInstancesSelectEditor = null;
-                lastSavedNode.value = null;
-            } else {
-                console.log(
-                    'activatedInstancesSelectEditor is not the same as last saved node'
-                );
-            }
-        }
-    },
-    { immediate: true }
-);
-
 const selectedItemIcon = computed(() => {
     if (subValues.value.selectedInstance) {
         return getClassIcon(
@@ -838,13 +750,49 @@ function processTempItem(item) {
     }
 }
 
+async function onReturningFromSavedForm(savedNode) {
+    // We want to set the selected instance as the saved node
+    // This is the format of savedNode:
+    // {
+    //     nodeshape_iri: nodeshape_iri,
+    //     node_iri: subject_iri
+    // }
+    // First, let's make sure the list is updated to include the recently saved node:
+    await getItemsToList();
+    fetchedItemCount.value = itemsToList.value.length;
+    // Then we need to set the selectedInstance. The itemsToList has items as objects,
+    // with value = quad.subject.value.
+    // We need to find the item that has the value being the same as the saved node's node_iri
+    // This holds for named node records. However, the process is different for blank node
+    // records since the introduction of the blank node deduplication process. In getItemsToList,
+    // the deduplication will assign a quad with a new blank node as subject to item.props.itemQuad.
+    // Hence the item value will not be the same anymore as logged by savedNode.node_iri. For
+    // blank nodes, we have to look at the subject value of all the relatedQuads, because they
+    // reflect the 'true' state before deduplication.
+    let inst = null
+    for (const listItem of itemsToList.value) {
+        if (listItem.props.itemQuad.subject.termType === "NamedNode") {
+            if (listItem.value == savedNode.node_iri) {
+                inst = listItem;
+                break;
+            }
+        } else {
+            const originalBNid = Array.from(new Set(listItem.props.relatedQuads.map((x) => x.subject.value)))[0];
+            if (originalBNid == savedNode.node_iri) {
+                inst = listItem;
+                break;
+            }
+        }
+    }
+    if (inst) {
+        selectItem(inst)
+    } else {
+        console.log('A node was recently saved but it could not be found in the itemsToList and was therefore not set as the selectedItem');
+    }
+}
+
 function handleAddItemClick(item) {
-    openForms.at(-1).activatedInstancesSelectEditor = {
-        nodeshape_iri: props.node_uid,
-        node_iri: props.node_idx,
-        predicate_iri: props.triple_uid,
-        predicate_idx: props.triple_idx,
-    };
+    console.log("Adding item from InstancesSelectEditor")
     selectedAddItemShapeIRI.value = item.value;
     newNodeIdx.value = crypto.randomUUID();
     console.log('New form shape IRI');
@@ -853,7 +801,7 @@ function handleAddItemClick(item) {
     console.log(newNodeIdx.value);
     addItemMenu.value = false;
     menu.value = false;
-    addForm(selectedAddItemShapeIRI.value, newNodeIdx.value, 'new');
+    addForm(selectedAddItemShapeIRI.value, newNodeIdx.value, 'new', true, onReturningFromSavedForm);
 }
 
 
