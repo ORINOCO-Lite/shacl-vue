@@ -77,7 +77,7 @@ export function useForm({openForms, rdfDS, allPrefixes, callbacks = {}}) {
         }
     }
 
-    function addForm(shapeIRI, nodeIDX, formType, removeNode = true) {
+    function addForm(shapeIRI, nodeIDX, formType, removeNode = true, onSaveEvent = undefined ) {
         // shapeIRI: class IRI
         // nodeIDX: node ID
         // formType: 'new' | 'edit'
@@ -90,8 +90,8 @@ export function useForm({openForms, rdfDS, allPrefixes, callbacks = {}}) {
             nodeIDX: nodeIDX,
             formType: formType,
             disabled: false,
-            activatedInstancesSelectEditor: null,
             removeNode: removeNode,
+            onSaveEvent: onSaveEvent,
         });
         if (callbacks.onAddForm) {
             callbacks.onAddForm()

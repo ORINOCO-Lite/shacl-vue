@@ -163,6 +163,10 @@ const { mobile } = useDisplay()
 const props = defineProps({
     shape_iri: String,
     node_idx: String,
+    onSaveEvent: {
+        type: Function,
+        default: undefined,
+    },
 });
 
 // ---- //
@@ -177,8 +181,6 @@ const formData = inject('formData');
 const config = inject('config');
 const ID_IRI = inject('ID_IRI');
 const allPrefixes = inject('allPrefixes');
-const cancelFormHandler = inject('cancelFormHandler');
-const saveFormHandler = inject('saveFormHandler');
 const editMode = inject('editMode');
 const removeForm = inject('removeForm');
 const savedNodes = inject('savedNodes');
@@ -371,8 +373,8 @@ async function saveForm() {
             if (nodesToSubmit.value.length) {
                 submitWarning.value = true;
             }
-            if (typeof saveFormHandler === 'function') {
-                saveFormHandler();
+            if (typeof props.onSaveEvent === 'function') {
+                props.onSaveEvent(saved_node);
             }
         } else {
             console.log('Still some validation errors...');
@@ -415,9 +417,6 @@ function cancelForm() {
         formData.removeSubject(localShapeIri.value, localNodeIdx.value);
     }
     removeForm(null);
-    if (typeof cancelFormHandler === 'function') {
-        cancelFormHandler();
-    }
 }
 
 function scrollAllParentsToTop(el) {

@@ -205,6 +205,7 @@
                                                             "
                                                             :shape_iri="f.shapeIRI"
                                                             :node_idx="f.nodeIDX"
+                                                            :onSaveEvent="f.onSaveEvent"
                                                         ></FormEditor>
                                                     </div>
                                                 </v-expansion-panel-text>
