@@ -94,6 +94,14 @@
             </em>
         </small>
     </v-row>
+    <v-alert
+        v-model="tokenAlert"
+        density="compact"
+        text="Please enter and save a token (via the settings menu) before uploading a file"
+        title="No token found"
+        type="warning"
+        closable
+    />
 </template>
 
 <script setup>
@@ -130,6 +138,8 @@ const uploadFailureError = ref({})
 const errorDialog = ref(false)
 const showUploadedFile = ref(false)
 const uploadedFileData = ref(null)
+
+const tokenAlert = ref(false)
 
 watch(selectedTarget, () => {
     updateRepositories()
@@ -223,12 +233,14 @@ const onCardClick = () => {
 }
 
 function beforeUploadCheck() {
+    tokenAlert.value = false;
     if (token.value !== null && token.value !== 'null') {
         tokenExists.value = true;
     }
     if (!tokenExists.value) {
         // showTokenDialog.value = true;
         tokenWarning.value = true;
+        tokenAlert.value = true;
         return false;
     }
     return true;
