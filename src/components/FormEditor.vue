@@ -276,8 +276,8 @@ watch(
 // ------------------- //
 const formattedDescription = computed(() => {
     // For the class description, use a regular expression to replace text between backticks with <code> tags
-    if (shape_obj && shape_obj[RDFS.comment.value]) {
-        return addCodeTagsToText(shape_obj[RDFS.comment.value]);
+    if (shape_obj && (shape_obj[RDFS.comment.value] || shape_obj[SHACL.description.value])) {
+        return addCodeTagsToText(shape_obj[RDFS.comment.value] || shape_obj[SHACL.description.value]);
     } else {
         return '-';
     }

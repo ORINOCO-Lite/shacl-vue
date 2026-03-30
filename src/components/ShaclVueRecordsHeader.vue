@@ -101,7 +101,9 @@ const shapesDS = inject('shapesDS')
 const formattedDescription = computed(() => {
     // For the class description, use a regular expression to replace text between backticks with <code> tags
     if (props.selectedShape) {
-        return addCodeTagsToText(props.selectedShape[RDFS.comment.value]);
+        let comment = props.selectedShape.hasOwnProperty(RDFS.comment.value) ? props.selectedShape[RDFS.comment.value] :
+                (props.selectedShape.hasOwnProperty(SHACL.description.value) ? props.selectedShape[SHACL.description.value] : null);
+        return addCodeTagsToText(comment);
     } else {
         return '-';
     }
