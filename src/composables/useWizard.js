@@ -1,5 +1,5 @@
-import { ref, reactive } from "vue";
-import { getContent, fillStringTemplate, findObjectByKey, findObjectIndexByKey, nodeShapeHasProperty, getIcon, getContentType} from "@/modules/utils";
+import { ref, reactive, toRaw} from "vue";
+import { fillStringTemplate, findObjectByKey, findObjectIndexByKey, nodeShapeHasProperty} from "@/modules/utils";
 import { toCURIE, toIRI } from "shacl-tulip";
 import { RDF } from "@/modules/namespaces";
 import { DataFactory } from 'n3';
@@ -50,15 +50,12 @@ export function useWizard() {
     // --------- //
     function setupWizards(context, class_IRI, configVarsMain, allPrefixes, shapesDS) {
         let classCurie = toCURIE(class_IRI, allPrefixes)
-        // Load wizard editors if any, also load icon/template content
-        // first class-based wizards
+        // Load wizard editors if any
+        let wizardsToAdd = new Set();
+        // First, class-specific wizards
         if (configVarsMain.wizardEditorSelection?.[classCurie]?.[context]){
-            for (const wizard of configVarsMain.wizardEditorSelection?.[classCurie]?.[context]) {
-                console.log(`adding wizard '${wizard}' for class '${classCurie}' and context '${context}'`)
-                wizardEditors[wizard] = configVarsMain.wizardEditors[wizard]
-                wizardEditors[wizard].template_type = getContentType(configVarsMain.content, wizardEditors[wizard].template)
-                wizardEditors[wizard].template = getContent(configVarsMain.content, wizardEditors[wizard].template)
-                wizardEditors[wizard].iconFig = getIcon(wizardEditors[wizard].icon, configVarsMain)
+            for (const wizard of configVarsMain.wizardEditorSelection?.[classCurie]?.[context] || []) {
+                wizardsToAdd.add(wizard)
             }
         }
         // then slot-based wizards
@@ -66,15 +63,14 @@ export function useWizard() {
             for (const slot of Object.keys(configVarsMain.wizardEditorSelection._slots)) {
                 let slotIRI = toIRI(slot, allPrefixes)
                 if (nodeShapeHasProperty(toIRI(class_IRI, allPrefixes), shapesDS, slotIRI, allPrefixes)) {
-                    for (const wizard of configVarsMain.wizardEditorSelection?._slots[slot][context]) {
-                        if (wizard in wizardEditors) continue;
-                        wizardEditors[wizard] = configVarsMain.wizardEditors[wizard]
-                        wizardEditors[wizard].template_type = getContentType(configVarsMain.content, wizardEditors[wizard].template)
-                        wizardEditors[wizard].template = getContent(configVarsMain.content, wizardEditors[wizard].template)
-                        wizardEditors[wizard].iconFig = getIcon(wizardEditors[wizard].icon, configVarsMain)
+                    for (const wizard of configVarsMain.wizardEditorSelection?._slots[slot][context] || []) {
+                        wizardsToAdd.add(wizard)
                     }
                 }
             }
+        }
+        for (const w of Array.from(wizardsToAdd)) {
+            wizardEditors[w] = toRaw(configVarsMain.wizardEditorsLoaded[w])
         }
         if (Object.keys(wizardEditors).length > 0) {
             showWizards.value = true

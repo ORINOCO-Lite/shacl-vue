@@ -3,8 +3,8 @@
  * Composable for managing the application configuration
  */
 
-import { isObject, snakeToCamel, getContent, toIRI, toCURIE} from '@/modules/utils';
-import { ref, onMounted, reactive, watch} from 'vue';
+import { isObject, snakeToCamel, getContent, getContentType, toIRI, toCURIE, getIcon} from '@/modules/utils';
+import { ref, onMounted, reactive, watch, toRaw} from 'vue';
 import { mergeWith } from 'lodash-es'
 import { parse as parseYAML } from 'yaml';
 const basePath = import.meta.env.BASE_URL || '/';
@@ -240,6 +240,8 @@ export function useConfig(url) {
                 if (configVarsMain.frontPageContent) {
                     frontPageHTML.value = getContent(configVarsMain.content, configVarsMain.frontPageContent)
                 }
+                // Load wizards' content + template type + icon
+                loadWizardEditors()
                 configReady.value = true;
             }
         },
@@ -405,6 +407,16 @@ export function useConfig(url) {
                 );
                 var results = await Promise.allSettled(fetchRsPromises);
             }
+        }
+    }
+
+    function loadWizardEditors() {
+        configVarsMain.wizardEditorsLoaded = [];
+        for (const wizard of Object.keys(configVarsMain.wizardEditors)) {
+            configVarsMain.wizardEditorsLoaded[wizard] = toRaw(configVarsMain.wizardEditors[wizard]);
+            configVarsMain.wizardEditorsLoaded[wizard].template_type = getContentType(configVarsMain.content, configVarsMain.wizardEditors[wizard].template);
+            configVarsMain.wizardEditorsLoaded[wizard].template = getContent(configVarsMain.content, configVarsMain.wizardEditors[wizard].template);
+            configVarsMain.wizardEditorsLoaded[wizard].iconFig = getIcon(configVarsMain.wizardEditors[wizard].icon, configVarsMain);
         }
     }
 
