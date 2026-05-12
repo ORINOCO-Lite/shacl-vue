@@ -3,8 +3,8 @@
         <v-skeleton-loader type="list-item-avatar"></v-skeleton-loader>
     </span>
     <span v-else>
-        <div v-if="props.instanceItemsComp.length">
-            <v-row v-if="props.instanceItemsComp.length">
+        <div v-if="props.fetchedItemCount">
+            <v-row v-if="props.fetchedItemCount">
                 <v-col :cols="props.mobile ? 12 : 8">
                     <v-text-field
                         v-model="searchText"
@@ -64,11 +64,7 @@
                 </template>
             </v-tooltip>
             <DynamicScroller
-                :items="
-                    textMatchType == 'exact' ?
-                    props.matchedInstanceItemsComp :
-                    props.filteredInstanceItemsComp
-                "
+                :items="props.filteredRecords"
                 page-mode
                 :min-item-size="50"
                 key-field="title"
@@ -123,13 +119,12 @@ import {
 // ----- //
 const props = defineProps({
     selectedIRI: String,
-    instanceItemsComp: Array,
     classRecordsLoading: Boolean,
     mobile: Boolean,
     showScrollTopBtn: Boolean,
     scrollToTop: Function,
-    matchedInstanceItemsComp: Array,
-    filteredInstanceItemsComp: Array,
+    filteredRecords: Array,
+    fetchedItemCount: Number,
     showFetchingPageLoader: Boolean,
 });
 

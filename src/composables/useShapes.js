@@ -3,9 +3,9 @@
  * @description This composable reads a ttl file with shacl shapes and returns
  * a set of reactive variables used by the root application component
  */
-import { reactive, toRaw} from 'vue';
+import { reactive, toRaw, ref} from 'vue';
 import { ShapesDataset } from 'shacl-tulip';
-import { findObjectByKey, toIRI } from '@/modules/utils'
+import { findObjectByKey, toIRI, toCURIE, getDisplayName, includeClass} from '@/modules/utils'
 import { SHACL, RDFS} from '@/modules/namespaces';
 
 const basePath = import.meta.env.BASE_URL || '/';
@@ -16,6 +16,14 @@ export function useShapes(config) {
     // ---- //
     const defaultURL = `${basePath}dlschemas_shacl.ttl`;
     const shapesDS = new ShapesDataset(reactive({}));
+    // These are all arays of classes that are eventually represented in the
+    // main class-selection pane in the ShaclVue* components
+    const idFilteredNodeShapeNames = ref([]);
+    const noEditClassList = ref([]);
+    const filteredNodeShapeNames = ref([]);
+    const priorityFilteredNodeShapeNames = ref([]);
+    const orderedNodeShapeNames = ref([]);
+    const allClassItems = ref([]);
 
     // ----------------- //
     // Lifecycle methods //
@@ -134,6 +142,138 @@ export function useShapes(config) {
         shapesDS.data.propertyGroups['_default'][RDFS.label.value] = "Additional properties";
         shapesDS.data.propertyGroups['_default'][SHACL.order.value] = high_order + 100;
     }
+    
+    const getIdFilteredNodeShapeNames = ((configVarsMain, ID_IRI) => {
+        if (configVarsMain.showShapesWoId === true) {
+            return shapesDS.data.nodeShapeNamesArray;
+        }
+        var shapeNames = [];
+        for (var n of shapesDS.data.nodeShapeNamesArray) {
+            if (
+                findObjectByKey(
+                    shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[n]].properties,
+                    SHACL.path.value,
+                    ID_IRI.value
+                )
+            ) {
+                shapeNames.push(n);
+            }
+        }
+        return shapeNames;
+    });
+
+    const getNoEditClassList = ((configVarsMain, allPrefixes) => {
+        if (configVarsMain.noEditClasses?.length == 0) return []
+        var names = idFilteredNodeShapeNames.value;
+        var shapeNames = [];
+        for (var n of names) {
+            // First get IRI and prefix
+            var n_iri = shapesDS.data.nodeShapeNames[n]
+            if (includeClass(n_iri, configVarsMain, allPrefixes) &&
+                configVarsMain.noEditClasses?.indexOf(toCURIE(n_iri, allPrefixes)) >= 0) {
+                shapeNames.push(n);
+            }
+        }
+        return shapeNames.sort((a, b) =>
+            getDisplayName(
+                shapesDS.data.nodeShapeNames[a],
+                configVarsMain,
+                allPrefixes,
+                shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[a]]
+            ).toLowerCase()
+            .localeCompare(
+                getDisplayName(
+                    shapesDS.data.nodeShapeNames[b],
+                    configVarsMain,
+                    allPrefixes,
+                    shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[b]]
+                ).toLowerCase()
+            )
+        );
+    });
+    
+    const getFilteredNodeShapeNames = ((configVarsMain, allPrefixes) => {
+        var names = idFilteredNodeShapeNames.value;
+        // If all relevant config arrays are empty, show all classes
+        if (
+            configVarsMain.showClasses?.length == 0 &&
+            configVarsMain.showClassesWithPrefix?.length == 0 &&
+            configVarsMain.hideClasses?.length == 0 &&
+            configVarsMain.hideClassesWithPrefix?.length == 0 &&
+            configVarsMain.noEditClasses?.length == 0
+        ) {
+            return names;
+        }
+        var shapeNames = [];
+        for (var n of names) {
+            // First get IRI and prefix
+            var n_iri = shapesDS.data.nodeShapeNames[n]
+            if (includeClass(n_iri, configVarsMain, allPrefixes) && configVarsMain.noEditClasses.indexOf(toCURIE(n_iri, allPrefixes)) < 0) {
+                shapeNames.push(n);
+            }
+        }
+        return shapeNames;
+    });
+    
+    const getPriorityFilteredNodeShapeNames = ((priorityClassList) => {
+        var names = filteredNodeShapeNames.value;
+        var shapeNames = [];
+        for (var n of names) {
+            var n_iri = shapesDS.data.nodeShapeNames[n]
+            if (!priorityClassList.value.includes(n_iri)) {
+                shapeNames.push(n);
+            }
+        }
+        return shapeNames;
+    })
+    
+    const getOrderedNodeShapeNames = ((configVarsMain, allPrefixes) => {
+        return priorityFilteredNodeShapeNames.value.sort((a, b) =>
+            getDisplayName(
+                shapesDS.data.nodeShapeNames[a],
+                configVarsMain,
+                allPrefixes,
+                shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[a]]
+            ).toLowerCase()
+            .localeCompare(
+                getDisplayName(
+                    shapesDS.data.nodeShapeNames[b],
+                    configVarsMain,
+                    allPrefixes,
+                    shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[b]]
+                ).toLowerCase()
+            )
+        );
+    })
+    
+    const getAllClassItems = ((configVarsMain, allPrefixes, getClassIcon) => {
+        let items = [];
+        for (const node of orderedNodeShapeNames.value) {
+            const classIRI = shapesDS.data.nodeShapeNames[node];
+            const displayName = getDisplayName(
+                classIRI,
+                configVarsMain,
+                allPrefixes,
+                shapesDS.data.nodeShapes[classIRI]
+            );
+            const description = shapesDS.data.nodeShapes[classIRI][RDFS.comment.value];
+            items.push(
+                {
+                    title: displayName,
+                    value: classIRI,
+                    props: {
+                        title: displayName,
+                        iri: classIRI,
+                        subtitle: toCURIE(classIRI, allPrefixes),
+                        icon: getClassIcon(classIRI),
+                        description: description,
+                        totalItemCount: null,
+                    },                
+                }
+            )
+        }
+        return items;
+    })
 
     // ------- //
     // Returns //
@@ -144,5 +284,17 @@ export function useShapes(config) {
         updateShapesFromDefault,
         updateShapes,
         updatePropertyGroups,
+        idFilteredNodeShapeNames,
+        noEditClassList,
+        filteredNodeShapeNames,
+        priorityFilteredNodeShapeNames,
+        orderedNodeShapeNames,
+        allClassItems,
+        getIdFilteredNodeShapeNames,
+        getNoEditClassList,
+        getFilteredNodeShapeNames,
+        getPriorityFilteredNodeShapeNames,
+        getOrderedNodeShapeNames,
+        getAllClassItems,
     };
 }

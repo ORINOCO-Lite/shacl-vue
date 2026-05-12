@@ -9,13 +9,14 @@ It contains all functionality related to the display and interactions of
 records on the main page.
 */
 
-import { ref, computed, watch, watchEffect} from 'vue';
+import { ref, computed, watch, watchEffect, onMounted, nextTick, reactive} from 'vue';
 import { debounce } from 'lodash-es';
 import { RDF, SKOS } from '@/modules/namespaces';
 import {
     getConfigDisplayLabel,
     hasConfigDisplayLabel,
     toCURIE,
+    getPidQuad,
 } from '@/modules/utils';
 import { DataFactory } from 'n3';
 const { namedNode } = DataFactory;
@@ -38,24 +39,42 @@ export function useRecords(
     // ---- //
     const totalItemCount = ref(0);
     const isFetchingPage = ref(false);
-    const showScrollTopBtn = ref(false);
     const showFetchingPageLoader = ref(false)
     const searchText = ref('');
     const textMatchType = ref('partial');
-    const instanceItemsComp = ref([]);
-    const newTypeSelected = ref(false);
-    const itemsTrigger = ref(false);
-    const fetchedItemCount = ref(null)
     const classRecordsLoading = ref(false);
     const headingHover = ref(false);
     const orderTopDown = ref(true);
     const includeSubClasses = ref(false);
+    const includedClasses = ref(null);
     let hideTimeout = null
     let debounceTypingTimer = null;
+    const itemQueue = new Set();
+    let isProcessingItemQueue = false;
+    // We needed to decide between 1 and 2:
+    // 1: shallowRef({}), with shallow copy every time a new item is added
+    // records.value = {
+    //     ...records.value,
+    //     [pid]: item
+    // };
+    // The shallow copy is necessary in order to trigger reactivity because a (shallow?) ref does not
+    // track deeper reactivity.
+    // 2: reactive({})
+    // After consideration: using ref([]) and shallowRef([]) means every time a record is added we first
+    // need to check if it exists in the array already, which is another step that adds to the cost.
+    // i.e. => use reactive.
+    const recordItemsAll = reactive({});
+    const recordItemsByClass = reactive({});
 
     // --------------------- //
     // Lifecycle/Vue methods //
     // --------------------- //
+    onMounted(() => {
+        rdfDS.addEventListener('recordsChanged', (e) => {
+            enqueueChanges(e.detail.records);
+        });
+    });
+
     watch(isFetchingPage, (newVal) => {
         if (newVal) {
             // If fetching starts → show immediately
@@ -73,20 +92,6 @@ export function useRecords(
         }
     })
 
-    watch(
-        instanceItemsComp,
-        (newVal, oldVal) => {
-            if (newTypeSelected.value) {
-                newTypeSelected.value = false;
-                return;
-            }
-            if (classRecordsLoading.value) {
-                classRecordsLoading.value = false;
-            }
-        },
-        { deep: true }
-    );
-
     watchEffect(async () => {
         // If we are using a backend service AND
         // there are a minimum amount of characters in the search field AND
@@ -98,7 +103,7 @@ export function useRecords(
             hasUnfetchedPages(selectedIRI.value, searchText.value)) {
             // Only trigger fetch if not already fetching
             if (!isFetchingPage.value) {
-                await fetchNextPage(searchText.value);
+                await fetchNextPage(selectedIRI.value, searchText.value);
             }
         }
     });
@@ -112,13 +117,6 @@ export function useRecords(
             onTypingPause(newVal);
         }, configVarsMain.serviceConstrainedSearch.typing_debounce);
     });
-    // regenerate list if the graph data is updated
-    const debouncedUpdate = debounce(() => {
-        if (openForms.length == 0) {
-            getInstanceItems();
-        }
-    }, 500);
-    watch(() => rdfDS.data.graphChanged, debouncedUpdate, { deep: true });
 
     // -------------- //
     // Computed props //
@@ -142,63 +140,102 @@ export function useRecords(
             return 100;
         }
     })
-    
-    const filteredInstanceItemsComp = computed(() => {
+
+    const showScrollTopBtn = computed(() => {
+        if (filteredRecordItemsByClass.value[selectedIRI.value]?.length > 7) return true;
+        return false;
+    });
+
+    const fetchedItemCount = computed(() => {
+        if (includeSubClasses.value && Array.isArray(allSubClasses[selectedIRI.value]) && allSubClasses[selectedIRI.value].length > 0 ) {
+            let allclass_array = [selectedIRI.value].concat(allSubClasses[selectedIRI.value])
+            let itemCount = 0;
+            for (const cl of allclass_array) {
+                if (recordItemsByClass[cl]) {
+                    itemCount += Object.values(recordItemsByClass[cl]).length;
+                }
+            }
+            return itemCount;
+        }
+        if (recordItemsByClass[selectedIRI.value]) {
+            return Object.values(recordItemsByClass[selectedIRI.value]).length;
+        }
+        return null;
+    });
+
+    const filteredRecordItemsAll = computed(() => {
         let txt = searchText.value.toLowerCase().trim();
+        if (txt.length == 0) return sortItems(Object.values(recordItemsAll))
         return sortItems(
-            [...instanceItemsComp.value].filter((item) => {
+            Object.values(recordItemsAll).filter((item) => {
                 if (txt.length == 0) return true;
-                return searchableFields.some((field) => {
-                    if (!(field in item.props)) return false;
-                    const value = item.props[field]?.toString().toLowerCase().trim();
-                    if (Array.isArray(value)) {
-                        return value.some((val) => {
-                            return val.includes(txt);
-                        })
-                    } else {
-                        return value.includes(txt);
-                    }
-                });
+                if (!('_searchBlob' in item.props)) return false;
+                return item.props._searchBlob.includes(txt);
             })
         )
     });
 
-    const matchedInstanceItemsComp = computed(() => {
+    const filteredRecordItemsByClass = computed(() => {
         let txt = searchText.value.toLowerCase().trim();
-        return sortItems(
-            [...instanceItemsComp.value].filter((item) => {
-                if (txt.length == 0) return true;
-                return searchableFields.some((field) => {
-                    if (!(field in item.props)) return false;
-                    const value = item.props[field]?.toString().toLowerCase().trim();
-                    return value === txt;
-                });
-            })
-        )
+        const map = {};
+        for (const cl of Object.keys(recordItemsByClass)) {
+            map[cl] = sortItems(
+                Object.values(recordItemsByClass[cl]).filter((item) => {
+                    if (txt.length == 0) return true;
+                    if (!('_searchBlob' in item.props)) return false;
+                    if (textMatchType.value == 'exact') {
+                        return searchableFields.some((field) => {
+                            if (!(field in item.props)) return false;
+                            const value = item.props[field]?.toString().toLowerCase().trim();
+                            return value === txt;
+                        });
+                    } else {
+                        return item.props._searchBlob.includes(txt);
+                    }
+                })
+            )
+        }
+        return map
     });
-    
+
+    const filteredRecordItemsForClassWithSubclassItems = computed(() => {
+        let items = [];
+        if (!includeSubClasses.value) {
+            return items;
+        }
+        if (Array.isArray(allSubClasses[selectedIRI.value]) && allSubClasses[selectedIRI.value].length > 0 ) {
+            let allclass_array = [selectedIRI.value].concat(allSubClasses[selectedIRI.value])
+            for (const cl of allclass_array) {
+                if (filteredRecordItemsByClass.value[cl]) {
+                    items = items.concat(filteredRecordItemsByClass.value[cl])
+                }
+            
+            }
+        }
+        return sortItems(items)
+    });
+
     // --------- //
     // Functions //
     // --------- //
 
     // fetch new items at bottom of scroller
     function onScrollEnd() {
-        debouncedScrollEnd();
+        debouncedScrollEnd(selectedIRI.value);
     }
 
-    const debouncedScrollEnd = debounce(async () => {
+    const debouncedScrollEnd = debounce(async (classIRI) => {
         // Only fetch new items at bottom of scroller if there is not any search text
         // Continued fetching of more items while there is search text will be handled
         // by the watcheffect function.
         if (searchText.value) {
             return
         }
-
         if (config.value.use_service) {
-            if (hasUnfetchedPages(selectedIRI.value) && !isFetchingPage.value) {
-                await fetchNextPage();
+            if (hasUnfetchedPages(classIRI) && !isFetchingPage.value) {
+                await fetchNextPage(classIRI);
             } else {
-                console.log("Last page already fetched")
+                console.log(`Last page already fetched: ${classIRI}`)
             }
         }
     }, 1000);
@@ -211,7 +248,7 @@ export function useRecords(
 
     async function onTypingPause(textVal) {
         if (!searchText.value || searchText.value.length < configVarsMain.serviceConstrainedSearch.min_characters ) return;
-        await fetchNextPage(searchText.value);
+        await fetchNextPage(selectedIRI.value, searchText.value);
     }
     // User types, debounce effect monitors pauses and waits for configured time
     // before making the first constrained request.
@@ -225,119 +262,24 @@ export function useRecords(
     // Continued fetching of more items while there is search text is handled by
     // the watcheffect function.
 
-    async function fetchNextPage(matchText='') {
-        if (isFetchingPage.value || !hasUnfetchedPages(selectedIRI.value, matchText)) return;
+    async function fetchNextPage(classIRI, matchText='') {
+        if (isFetchingPage.value || !hasUnfetchedPages(classIRI, matchText)) return;
         isFetchingPage.value = true;
         try {
             const result = await fetchFromService(
                 'get-paginated-records-constrained',
-                selectedIRI.value,
+                classIRI,
                 allPrefixes,
                 matchText
             );
             if (result.status === null) {
                 console.error(result.error);
             }
-            getInstanceItems(); // rebuild local list of items
         } catch (err) {
             console.error(err);
         } finally {
             isFetchingPage.value = false;
         }
-    }
-
-    function getInstanceItems() {
-        // ---
-        // The goal of this method is to populate the list of data objects of the selected type
-        // ---
-        var x = itemsTrigger.value;
-        if (!selectedIRI.value) {
-            return [];
-        }
-        // find nodes with triple predicate == rdf:type, and triple object == the selected class
-        // if the class is a configured priority class with include_subclasses = true, find nodes
-        // for the selected class and all of its subclasses
-        var quads;
-        if (includeSubClasses.value) {
-            let allclass_array = [selectedIRI.value]
-            if (Array.isArray(allSubClasses[selectedIRI.value]) && allSubClasses[selectedIRI.value].length > 0 ) {
-                allclass_array = allclass_array.concat(allSubClasses[selectedIRI.value])
-            }
-            quads = [];
-            for (const cl of allclass_array) {
-                const mySubArray = rdfDS.getLiteralAndNamedNodes(
-                    namedNode(RDF.type.value),
-                    cl,
-                    allPrefixes
-                )
-                quads = quads.concat(mySubArray);
-            }
-        } else {
-            quads = rdfDS.getLiteralAndNamedNodes(
-                namedNode(RDF.type.value),
-                selectedIRI.value,
-                allPrefixes
-            );
-        }
-        // Create list items from quads
-        var instanceItemsArr = [];
-        quads.forEach((quad) => {
-            var extra = '';
-            if (quad.subject.termType === 'BlankNode') {
-                extra = ' (BlankNode)';
-            }
-            var relatedTrips = rdfDS.getSubjectTriples(quad.subject);
-            var item = {
-                title: quad.subject.value + extra,
-                value: quad.subject.value,
-                props: {
-                    subtitle: quad.object.value,
-                    quad: quad,
-                    itemValue: quad.subject.value,
-                },                
-            };
-            let labelTemplate = hasConfigDisplayLabel(quad.object.value, allPrefixes, configVarsMain)
-            let labelParts = {}
-            relatedTrips.forEach((quad) => {
-                if (!Object.hasOwn(item.props, quad.predicate.value)) {
-                    item.props[quad.predicate.value] = [];
-                }
-                if (quad.object.termType === 'BlankNode') {
-                    var bnItem = {};
-                    var blankNodeTrips = rdfDS.getSubjectTriples(quad.object);
-                    blankNodeTrips.forEach((bnquad) => {
-                        bnItem[bnquad.predicate.value] = bnquad.object.value;
-                    });
-                    item.props[quad.predicate.value].push(bnItem);
-                } else {
-                    item.props[quad.predicate.value].push(quad.object.value);
-                }
-                let predCuri = toCURIE(quad.predicate.value, allPrefixes)
-                // If current predicate is used for display label generation, store it
-                if ( labelTemplate && labelTemplate.includes(predCuri)) {
-                    if (!labelParts[predCuri]) {
-                        labelParts[predCuri] = []
-                    }
-                    labelParts[predCuri].push(quad.object.value)
-                }
-            });
-            item.props._prefLabel = '';
-            if (item.props.hasOwnProperty(SKOS.prefLabel.value)) {
-                item.props._prefLabel = item.props[SKOS.prefLabel.value][0];
-            }
-            // Generate display label if possible
-            item.props._displayLabel = '';
-            if (labelTemplate) {
-                let displayLabel = getConfigDisplayLabel(labelTemplate, labelParts, configVarsMain, rdfDS, allPrefixes)
-                if (displayLabel) {
-                    item.props._displayLabel = displayLabel;
-                }
-            }
-            instanceItemsArr.push(item);
-        });
-        instanceItemsComp.value = [...instanceItemsArr];
-        if (instanceItemsComp.value.length > 7) showScrollTopBtn.value = true;
-        fetchedItemCount.value = instanceItemsComp.value.length;
     }
 
     function getSortValue(item) {
@@ -364,6 +306,110 @@ export function useRecords(
         })
     }
 
+    function enqueueChanges(records) {
+        for (const r of records) {
+            itemQueue.add(r);
+        }
+        processQueue();
+    }
+
+    async function processQueue() {
+        if (isProcessingItemQueue) return;
+        isProcessingItemQueue = true;
+        while (itemQueue.size > 0) {
+            // take a batch
+            const batch = Array.from(itemQueue).slice(0, 10);
+            batch.forEach((record) =>{
+                itemQueue.delete(record)
+                updateRecordItem(record)
+            });
+            // yield to UI thread
+            await nextTick();
+        }
+        isProcessingItemQueue = false;
+    }
+
+    function updateRecordItem(record) {
+        // This function does not care if a record item already exists in the 
+        // object; it builds the item and adds it nevertheless.
+        // First we get the record's quad
+        let mainQuad = getPidQuad(record, rdfDS.data.graph);
+        if (!mainQuad) {
+            console.log(`No PID quad found in graph for record: ${record}; skipping update of this item`)
+            return
+        }
+        let recordClass = mainQuad.object.value;
+        // Now get related quads
+        var relatedTrips = rdfDS.getSubjectTriples(mainQuad.subject);
+        // Initialize item
+        var item = {
+            title: record,
+            value: record,
+            props: {
+                subtitle: recordClass,
+                quad: mainQuad,
+                itemValue: record,
+            },                
+        };
+        let labelTemplate = hasConfigDisplayLabel(recordClass, allPrefixes, configVarsMain)
+        let labelParts = {}
+        relatedTrips.forEach((quad) => {
+            if (!Object.hasOwn(item.props, quad.predicate.value)) {
+                item.props[quad.predicate.value] = [];
+            }
+            if (quad.object.termType === 'BlankNode') {
+                var bnItem = {};
+                var blankNodeTrips = rdfDS.getSubjectTriples(quad.object);
+                blankNodeTrips.forEach((bnquad) => {
+                    bnItem[bnquad.predicate.value] = bnquad.object.value;
+                });
+                item.props[quad.predicate.value].push(bnItem);
+            } else {
+                item.props[quad.predicate.value].push(quad.object.value);
+            }
+            let predCuri = toCURIE(quad.predicate.value, allPrefixes)
+            // If current predicate is used for display label generation, store it
+            if ( labelTemplate && labelTemplate.includes(predCuri)) {
+                if (!labelParts[predCuri]) {
+                    labelParts[predCuri] = []
+                }
+                labelParts[predCuri].push(quad.object.value)
+            }
+        });
+        item.props._prefLabel = '';
+        if (item.props.hasOwnProperty(SKOS.prefLabel.value)) {
+            item.props._prefLabel = item.props[SKOS.prefLabel.value][0];
+        }
+        // Generate display label if possible
+        item.props._displayLabel = '';
+        if (labelTemplate) {
+            let displayLabel = getConfigDisplayLabel(labelTemplate, labelParts, configVarsMain, rdfDS, allPrefixes)
+            if (displayLabel) {
+                item.props._displayLabel = displayLabel;
+            }
+        }
+        // Now put together single searchable blob
+        item.props._searchBlob = ''
+        for (const field of searchableFields) {
+            if (!(field in item.props)) continue;
+            let value = item.props[field]?.toString().toLowerCase().trim();
+            if (!Array.isArray(value)) {
+                value = [value]
+            }
+            for (const v of value) {
+                item.props._searchBlob = item.props._searchBlob + v
+            }
+        }
+        // Now that we have the complete item, we can add it to the tracking objects
+        // Class records tracker
+        if (!recordItemsByClass.hasOwnProperty(recordClass)) {
+            recordItemsByClass[recordClass] = {};
+        }
+        recordItemsByClass[recordClass][record] = item;
+        // All records tracker
+        recordItemsAll[record] = item;
+    }
+
     // ------- //
     // Returns //
     // ------- //
@@ -371,14 +417,11 @@ export function useRecords(
         classRecordsLoading,
         currentProgress,
         fetchedItemCount,
-        filteredInstanceItemsComp,
-        getInstanceItems,
+        fetchNextPage,
         headingHover,
+        includedClasses,
         includeSubClasses,
-        instanceItemsComp,
         isFetchingPage,
-        matchedInstanceItemsComp,
-        newTypeSelected,
         onScrollEnd,
         onUserTyping,
         orderTopDown,
@@ -388,5 +431,9 @@ export function useRecords(
         showScrollTopBtn,
         textMatchType,
         totalItemCount,
+        recordItemsByClass,
+        filteredRecordItemsAll,
+        filteredRecordItemsByClass,
+        filteredRecordItemsForClassWithSubclassItems,
     };
 }

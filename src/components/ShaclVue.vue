@@ -135,11 +135,10 @@
                                             <ShaclVueRecords
                                                 :selectedIRI="selectedIRI"
                                                 :classRecordsLoading="classRecordsLoading"
-                                                :instanceItemsComp="instanceItemsComp"
                                                 :mobile="mobile"
                                                 :showScrollTopBtn="showScrollTopBtn"
-                                                :matchedInstanceItemsComp="matchedInstanceItemsComp"
-                                                :filteredInstanceItemsComp="filteredInstanceItemsComp"
+                                                :filteredRecords="(includeSubClasses ? filteredRecordItemsForClassWithSubclassItems : filteredRecordItemsByClass[selectedIRI]) || []"
+                                                :fetchedItemCount="fetchedItemCount"
                                                 :showFetchingPageLoader="showFetchingPageLoader"
                                                 v-model:searchText="searchText"
                                                 v-model:textMatchType="textMatchType"
@@ -337,7 +336,25 @@ const {
 // Classes from OWL
 const { classDS, getClassData, allSubClasses, processSubClasses} = useClasses(config);
 // Shapes from SHACL
-const { shapesDS, getSHACLschema, updateShapesFromDefault, updateShapes, updatePropertyGroups} = useShapes(config);
+const {
+    shapesDS,
+    getSHACLschema,
+    updateShapesFromDefault,
+    updateShapes,
+    updatePropertyGroups,
+    idFilteredNodeShapeNames,
+    noEditClassList,
+    filteredNodeShapeNames,
+    priorityFilteredNodeShapeNames,
+    orderedNodeShapeNames,
+    allClassItems,
+    getIdFilteredNodeShapeNames,
+    getNoEditClassList,
+    getFilteredNodeShapeNames,
+    getPriorityFilteredNodeShapeNames,
+    getOrderedNodeShapeNames,
+    getAllClassItems,
+} = useShapes(config);
 // Graph data
 const {
     fetchedPages,
@@ -358,14 +375,9 @@ const {
     classRecordsLoading,
     currentProgress,
     fetchedItemCount,
-    filteredInstanceItemsComp,
-    getInstanceItems,
     headingHover,
     includeSubClasses,
-    instanceItemsComp,
     isFetchingPage,
-    matchedInstanceItemsComp,
-    newTypeSelected,
     onScrollEnd,
     onUserTyping,
     orderTopDown,
@@ -375,6 +387,10 @@ const {
     showScrollTopBtn,
     textMatchType,
     totalItemCount,
+    recordItemsByClass,
+    filteredRecordItemsAll,
+    filteredRecordItemsByClass,
+    filteredRecordItemsForClassWithSubclassItems,
 } = useRecords(
     allPrefixes,
     allSubClasses,
@@ -408,7 +424,6 @@ const {
         onEditInstanceItem: afterEditInstanceItem,
         onAddForm: scrollToTop,
         onRemoveForm: afterFormsClosed, // will run when last form is closed
-        onRemoveFormSaved: getInstanceItems, // will run when last form is closed via save
     }
 });
 // App navigation
@@ -521,6 +536,13 @@ watch(
             processSearchableFields();
             // Set component states from URL query parameters
             setViewFromQuery();
+            // Get all class-related data
+            idFilteredNodeShapeNames.value = getIdFilteredNodeShapeNames(configVarsMain, ID_IRI);
+            noEditClassList.value = getNoEditClassList(configVarsMain, allPrefixes);
+            filteredNodeShapeNames.value = getFilteredNodeShapeNames(configVarsMain, allPrefixes);
+            priorityFilteredNodeShapeNames.value = getPriorityFilteredNodeShapeNames(priorityClassList);
+            orderedNodeShapeNames.value = getOrderedNodeShapeNames(configVarsMain, allPrefixes);
+            allClassItems.value = getAllClassItems(configVarsMain, allPrefixes, getClassIcon);
             page_ready.value = true;
         }
     },
@@ -538,111 +560,6 @@ onBeforeUnmount(() => {
 // -------------- //
 // Computed props //
 // -------------- //
-// These are all arays of classes that are eventually represented in the
-// main class-selection pane in this component
-const idFilteredNodeShapeNames = computed(() => {
-    if (configVarsMain.showShapesWoId === true) {
-        return shapesDS.data.nodeShapeNamesArray;
-    }
-    var shapeNames = [];
-    for (var n of shapesDS.data.nodeShapeNamesArray) {
-        if (
-            findObjectByKey(
-                shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[n]]
-                    .properties,
-                SHACL.path.value,
-                ID_IRI.value
-            )
-        ) {
-            shapeNames.push(n);
-        }
-    }
-    return shapeNames;
-});
-
-const filteredNodeShapeNames = computed(() => {
-    var names = idFilteredNodeShapeNames.value;
-    // If all relevant config arrays are empty, show all classes
-    if (
-        configVarsMain.showClasses?.length == 0 &&
-        configVarsMain.showClassesWithPrefix?.length == 0 &&
-        configVarsMain.hideClasses?.length == 0 &&
-        configVarsMain.hideClassesWithPrefix?.length == 0 &&
-        configVarsMain.noEditClasses?.length == 0
-    ) {
-        return names;
-    }
-    var shapeNames = [];
-    for (var n of names) {
-        // First get IRI and prefix
-        var n_iri = shapesDS.data.nodeShapeNames[n]
-        if (includeClass(n_iri, configVarsMain, allPrefixes) && configVarsMain.noEditClasses.indexOf(toCURIE(n_iri, allPrefixes)) < 0) {
-            shapeNames.push(n);
-        }
-    }
-    return shapeNames;
-});
-
-const priorityFilteredNodeShapeNames = computed(() => {
-    var names = filteredNodeShapeNames.value;
-    var shapeNames = [];
-    for (var n of names) {
-        var n_iri = shapesDS.data.nodeShapeNames[n]
-        if (!priorityClassList.value.includes(n_iri)) {
-            shapeNames.push(n);
-        }
-    }
-    return shapeNames;
-})
-
-const orderedNodeShapeNames = computed(() => {
-    return priorityFilteredNodeShapeNames.value.sort((a, b) =>
-        getDisplayName(
-            shapesDS.data.nodeShapeNames[a],
-            configVarsMain,
-            allPrefixes,
-            shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[a]]
-        ).toLowerCase()
-        .localeCompare(
-            getDisplayName(
-                shapesDS.data.nodeShapeNames[b],
-                configVarsMain,
-                allPrefixes,
-                shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[b]]
-            ).toLowerCase()
-        )
-    );
-})
-
-const noEditClassList = computed(() => {
-    if (configVarsMain.noEditClasses?.length == 0) return []
-    var names = idFilteredNodeShapeNames.value;
-    var shapeNames = [];
-    for (var n of names) {
-        // First get IRI and prefix
-        var n_iri = shapesDS.data.nodeShapeNames[n]
-        if (includeClass(n_iri, configVarsMain, allPrefixes) &&
-            configVarsMain.noEditClasses?.indexOf(toCURIE(n_iri, allPrefixes)) >= 0) {
-            shapeNames.push(n);
-        }
-    }
-    return shapeNames.sort((a, b) =>
-        getDisplayName(
-            shapesDS.data.nodeShapeNames[a],
-            configVarsMain,
-            allPrefixes,
-            shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[a]]
-        ).toLowerCase()
-        .localeCompare(
-            getDisplayName(
-                shapesDS.data.nodeShapeNames[b],
-                configVarsMain,
-                allPrefixes,
-                shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[b]]
-            ).toLowerCase()
-        )
-    );
-})
 
 // --------- //
 // Functions //
@@ -688,7 +605,6 @@ async function selectType(IRI, fromUser, fromBackButton, includeSubs=false) {
     totalItemCount.value = 0
     isFetchingPage.value = false;
     showScrollTopBtn.value = false;
-    newTypeSelected.value = true;
     var tempSearchText = searchText.value;
     var tempIRI = selectedIRI.value;
     searchText.value = '';
@@ -708,10 +624,8 @@ async function selectType(IRI, fromUser, fromBackButton, includeSubs=false) {
             console.error(result.error);
             classRecordsLoading.value = false;
         }
-        // If any of the results were successful, don't set classRecordsLoading to false
-        // because it will be set during the watch event for instanceItemsComp
+        // If any of the results were successful, do nothing
         if (result.status.length && result.status.indexOf('success') >= 0) {
-            // do nothing
         } else {
             classRecordsLoading.value = false;
         }
@@ -723,7 +637,7 @@ async function selectType(IRI, fromUser, fromBackButton, includeSubs=false) {
             totalItemCount.value = totalItems
         }
     }
-    getInstanceItems();
+    classRecordsLoading.value = false
     scrollToTop();
     if (fromUser) {
         updateURL(IRI, false, null, allPrefixes);

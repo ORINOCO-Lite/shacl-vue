@@ -88,7 +88,7 @@ const mainVarsToLoad = {
     service_base_url: [],
     service_constrained_search: {
         min_characters: 4,
-        typing_debounce: 800,
+        typing_debounce: 500,
     },
     class_name_display: 'name',
     footer_links: [],

@@ -108,6 +108,14 @@ export function addCodeTagsToText(text, prepend, append) {
     return result;
 }
 
+export function truncateText(str, n, useWordBoundary){
+  if (str.length <= n) { return str; }
+  const subString = str.slice(0, n-1);
+  return (useWordBoundary 
+    ? subString.slice(0, subString.lastIndexOf(" ")) 
+    : subString) + "&hellip;";
+};
+
 export function findObjectByKey(array, key, value) {
     return array.find((obj) => obj[key] === value);
 }
@@ -621,6 +629,33 @@ export function collectBlankNodeHierarchy(store, rootBNode) {
     return collected;
 }
 
+export function getRootNodes(store, node, visited = new Set()) {
+    if (visited.has(node.value)) return [];
+    visited.add(node.value);
+    const parents = store.getQuads(null, null, node, null);
+    let roots = [];
+    for (const p of parents) {
+        if (p.subject.termType === 'NamedNode') {
+            roots.push(p.subject.value);
+        } else {
+            roots = roots.concat(getRootNodes(store, p.subject, visited));
+        }
+    }
+    return roots;
+}
+
+export function getUniqueRootNodes(quads, store) {
+    let uniqueRecords = new Set();
+    for (const q of quads) {
+        if (q.subject.termType === 'NamedNode') {
+            uniqueRecords.add(q.subject.value);
+        } else {
+            let rootNodeValues = getRootNodes(store, q.subject)
+            for (const r of rootNodeValues) uniqueRecords.add(r)
+        }
+    }
+    return Array.from(uniqueRecords)
+}
 
 export function getRecordQuads(pid, graph, recursive=false) {
     // Return an array of quads related to a specific named node
