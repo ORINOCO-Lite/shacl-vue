@@ -90,6 +90,7 @@ const templates = reactive({
 })
 const hasCreatedQuads = ref(false)
 const createdQuads = ref([])
+const createdRecords = ref([])
 const createdDistributions = new Set()
 const savedNodes = inject('savedNodes');
 const nodesToSubmit = inject('nodesToSubmit');
@@ -163,9 +164,12 @@ async function onUploadComplete(result) {
         TTLdata.pid = toIRI(TTLdata.pid, allPrefixes)
         let newTTL = fillStringTemplate(templates.ttl, TTLdata)
         let newQuads = await rdfDS.parseTTLandDedup(newTTL);
-        rdfDS.triggerReactivity();
         // Keep track of quads that were added, so that we can delete them if form is cancelled
-        createdQuads.value = createdQuads.value.concat(newQuads)
+        // For the same reason, we also don't yet call rdfDS.emitAddedRecords() here, as we do in useData
+        // after a call to rdfDS.parseTTLandDedup; if the form is cancelled we don't want these items in 
+        // the global list. We let the form save function handle this.
+        createdQuads.value = createdQuads.value.concat(newQuads.quads)
+        createdRecords.value = createdRecords.value.concat(newQuads.records)
         hasCreatedQuads.value = true;
         // Keep track of distributions that were added
         createdDistributions.add(hash)
@@ -204,6 +208,8 @@ onBeforeUnmount( () => {
                 }
             }
         }
+        // we also emit the added records
+        rdfDS.emitAddedRecords(createdRecords.value)
     }
 })
 </script>

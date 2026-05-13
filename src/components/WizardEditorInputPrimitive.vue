@@ -12,6 +12,7 @@
     <v-textarea
         v-else-if="input.type === 'text-paragraph'"
         v-model="value"
+        :placeholder="input.placeholder"
         :rules="rules"
         variant="outlined"
         density="compact"

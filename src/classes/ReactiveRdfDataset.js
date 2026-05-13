@@ -2,7 +2,7 @@ import { reactive, ref } from 'vue';
 import { RdfDataset } from 'shacl-tulip';
 import { DataFactory, Store, Parser } from 'n3';
 import { RDF } from '@/modules/namespaces';
-import { hashSubgraph, getNodeContextKey, collectBlankNodeHierarchy} from '@/modules/utils';
+import { hashSubgraph, getNodeContextKey, collectBlankNodeHierarchy, getUniqueRootNodes} from '@/modules/utils';
 const { blankNode} = DataFactory;
 
 export class ReactiveRdfDataset extends RdfDataset {
@@ -92,7 +92,16 @@ export class ReactiveRdfDataset extends RdfDataset {
         });
     }
 
+    emitAddedRecords(records) {
+        this.dispatchEvent(
+            new CustomEvent('recordsChanged', {
+                detail: {records: records}
+            })
+        );
+    }
+
     async parseTTLandDedup(ttlString) {
+        let uniqueRecords
         const parser = new Parser();
         const tempStore = new Store();
         let addedQuads = [];
@@ -128,7 +137,9 @@ export class ReactiveRdfDataset extends RdfDataset {
             console.warn('No root named node detected in TTL, skipping deduplication steo and adding all quads to graph.');
             let bnQuads = tempStore.getQuads(null, null, null, null)
             this.data.graph.addQuads(bnQuads);
-            return addedQuads.concat(bnQuads);
+            let allAddedQuads = addedQuads.concat(bnQuads);
+            uniqueRecords = getUniqueRootNodes(allAddedQuads, this.data.graph)
+            return {quads: allAddedQuads, records: uniqueRecords}
         }
         // Now get all unique blank-node subject values
         const allTempQuads = tempStore.getQuads(null, null, null, null);
@@ -136,7 +147,10 @@ export class ReactiveRdfDataset extends RdfDataset {
             allTempQuads.filter(q => q.subject.termType === 'BlankNode').map(q => q.subject.value)
         );
         // If there are no blank-node subject values, no need to deduplicate
-        if (blankSubjects.size == 0) return addedQuads;
+        if (blankSubjects.size == 0) {
+            uniqueRecords = getUniqueRootNodes(addedQuads, this.data.graph)
+            return {quads: addedQuads, records: uniqueRecords}
+        }
         // Initialize set of fingerprints in the root-node context
         if (!this.data.subgraphFingerprintsByRoot.has(root_node)) {
             this.data.subgraphFingerprintsByRoot.set(root_node, new Set());
@@ -169,6 +183,7 @@ export class ReactiveRdfDataset extends RdfDataset {
                 // console.log(`Skipping duplicate subgraph for root ${root_node}, blank node ${bnodeId}`);
             }
         }
-        return addedQuads;
+        uniqueRecords = getUniqueRootNodes(addedQuads, this.data.graph)
+        return {quads: addedQuads, records: uniqueRecords}
     }
 }

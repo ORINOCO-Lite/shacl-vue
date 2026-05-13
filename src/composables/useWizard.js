@@ -1,5 +1,5 @@
-import { ref, reactive, toRaw} from "vue";
-import { fillStringTemplate, findObjectByKey, findObjectIndexByKey, nodeShapeHasProperty} from "@/modules/utils";
+import { ref, reactive, toRaw } from "vue";
+import { fillStringTemplate, findObjectByKey, findObjectIndexByKey, nodeShapeHasProperty } from "@/modules/utils";
 import { toCURIE, toIRI } from "shacl-tulip";
 import { RDF } from "@/modules/namespaces";
 import { DataFactory } from 'n3';
@@ -8,10 +8,11 @@ import { useNunjucks } from "@/composables/useNunjucks";
 const { fillNunjucksTemplate } = useNunjucks();
 
 export function showWizardGroup(configVarsMain, context, classUri, allPrefixes, shapesDS) {
-    console.log("Checking if wizard group should be shown")
     const classCurie = toCURIE(classUri, allPrefixes);
+    // all classes wizards
+    const all_class_selection = context == '_class' && configVarsMain.wizardEditorSelection?._classes;
     // class-based wizards ?
-    const selection = configVarsMain.wizardEditorSelection?.[classCurie]?.[context]
+    const selection = configVarsMain.wizardEditorSelection?.[classCurie]?.[context];
     // slot-based wizards ?
     let slot_selection = false;
     if (configVarsMain.wizardEditorSelection?._slots) {
@@ -27,7 +28,7 @@ export function showWizardGroup(configVarsMain, context, classUri, allPrefixes, 
             }
         }
     }
-    const rval = slot_selection || selection && Array.isArray(selection) && selection.length > 0;
+    const rval = all_class_selection || slot_selection || selection && Array.isArray(selection) && selection.length > 0;
     return rval
 }
 
@@ -52,7 +53,13 @@ export function useWizard() {
         let classCurie = toCURIE(class_IRI, allPrefixes)
         // Load wizard editors if any
         let wizardsToAdd = new Set();
-        // First, class-specific wizards
+        // First, any wizards that should show for all classes
+        if (context == '_class' && configVarsMain.wizardEditorSelection?._classes){
+            for (const wizard of configVarsMain.wizardEditorSelection?._classes) {
+                wizardsToAdd.add(wizard)
+            }
+        }
+        // then class-specific wizards
         if (configVarsMain.wizardEditorSelection?.[classCurie]?.[context]){
             for (const wizard of configVarsMain.wizardEditorSelection?.[classCurie]?.[context] || []) {
                 wizardsToAdd.add(wizard)
@@ -90,6 +97,8 @@ export function useWizard() {
     async function handleWizardSave(context, class_uri, wizardData, rdfDS, savedNodes, nodesToSubmit, subject_uri=null, formData) {
         wizardDialog.value = false;
         selectedWizard.value = null;
+        // Add class uri to wizard data
+        wizardData.class_uri = class_uri;
         // if the context is '_record', add the current formData node ID as "pid"
         if (context == '_record') {
             wizardData.pid = subject_uri;
@@ -103,12 +112,11 @@ export function useWizard() {
         }
         // And then parse TTL, adding quads to graph data
         let newQuads = await rdfDS.parseTTLandDedup(newTTL);
-        rdfDS.triggerReactivity();
         // Now we process each added quad differently based on context:
         // if context is _record, we need to work with formData of current record being edited
         // if context is _class or higher level, we can ignore formData because everything happens via template
         if (context == '_record') {
-            for (const q of newQuads) {
+            for (const q of newQuads.quads) {
                 // If the quad has the current node ID as subject, we need to add it to formdata, and also remove the quad from graph store
                 // If the quad has a different named node as subject, we need to keep track of it for submission purposes
                 if (q.subject.value == subject_uri) {
@@ -140,8 +148,8 @@ export function useWizard() {
                 }
             }
         } else {
-            console.log("The context was not _record...")
-            for (const q of newQuads) {
+            rdfDS.emitAddedRecords(newQuads.records)
+            for (const q of newQuads.quads) {
                 // Here we do not have to keep track of quads added to the graph,
                 // because there's no parent form that can still be cancelled.
                 // We need to keep track of the named nodes saved to the graph, for submission

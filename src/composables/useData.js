@@ -271,23 +271,25 @@ export function useData(config) {
             // First is fetching a single TTL document that expects TTL text
             if (expect === 'ttl') {
                 const text = await response.text();
-                await rdfDS.parseTTLandDedup(text);
-                rdfDS.triggerReactivity();
+                let ttlData = await rdfDS.parseTTLandDedup(text);
+                rdfDS.emitAddedRecords(ttlData.records)
                 return { success: true, url: getURL };
             }
             // Other response types both expect json first
             const json = await response.json();
             // JSON array of TTL strings
             if (expect === 'json') {
-                
+                let jsonRecords = [];
                 for (const element of json) {
-                    await rdfDS.parseTTLandDedup(element);
+                    let jsonData = await rdfDS.parseTTLandDedup(element);
+                    jsonRecords = jsonRecords.concat(jsonData.records)
                 }
-                rdfDS.triggerReactivity();
+                rdfDS.emitAddedRecords(jsonRecords)
                 return { success: true, url: getURL };
             }
             // Paginated response
             if (expect === 'paged') {
+                let pagedRecords = [];
                 const metadata = {
                     page: json.page,
                     pages: json.pages,
@@ -295,9 +297,10 @@ export function useData(config) {
                     size: json.size,
                 };
                 for (const element of json.items) {
-                    await rdfDS.parseTTLandDedup(element);
+                    let pagedData = await rdfDS.parseTTLandDedup(element);
+                    pagedRecords = pagedRecords.concat(pagedData.records)
                 }
-                rdfDS.triggerReactivity();
+                rdfDS.emitAddedRecords(pagedRecords)
                 return { success: true, url: getURL, pageMeta: metadata };
             }
             throw new Error(`Unsupported fetch type: ${expect}`);

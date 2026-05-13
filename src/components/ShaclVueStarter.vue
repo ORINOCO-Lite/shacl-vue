@@ -8,7 +8,6 @@
                         <!-- Button to open/close class selection pane -->
                         <v-btn
                             v-if="mobile"
-                            :disabled="formOpen"
                             :icon="drawer ? 'mdi-chevron-left' : 'mdi-chevron-right'"
                             size="40"
                             class="drawer-fab"
@@ -28,77 +27,43 @@
                         >
                             <v-list
                                 nav
-                                selectable
-                                :disabled="formOpen"
-                                v-model:selected="selectedItem"
+                                v-model:selected="classSelection"
+                                select-strategy="leaf"
                             >
-                                <!-- Heading -->
-                                <v-list-item value="data"><h4>Data Types</h4></v-list-item>
-                                <!-- Items: priority -->
-                                <span v-if="configVarsMain.priorityClasses?.length">
-                                    <v-list-item
-                                        v-for="node in configVarsMain.priorityClasses"
-                                        :prepend-icon="node.icon ? node.icon : getClassIcon(toIRI(node.class, allPrefixes))"
-                                        :title="node.title ? node.title :
-                                            getDisplayName(
-                                                toIRI(node.class, allPrefixes),
-                                                configVarsMain,
-                                                allPrefixes,
-                                                shapesDS.data.nodeShapes[toIRI(node.class, allPrefixes)]
-                                            )
-                                        "
-                                        :value="toIRI(node.class, allPrefixes)"
-                                        @click="selectType(toIRI(node.class, allPrefixes), true, false, node.include_subclasses)"
-                                    >
-                                    </v-list-item>
-                                    <v-divider
-                                        opacity=".7"
-                                        thickness="2"
-                                        gradient
-                                        style="margin-top: 1em; margin-bottom: 1em"
-                                    ></v-divider>
-                                </span>
-                                <!-- Items: all that should be shown and can be edited -->
+                                <v-list-item>
+                                    <template #prepend>
+                                    <v-list-item-action start>
+                                        <v-checkbox-btn
+                                            :model-value="allSelected"
+                                            :indeterminate="isIndeterminate"
+                                            @update:model-value="toggleAll"
+                                        />
+                                    </v-list-item-action>
+                                    </template>
+
+                                    <v-list-item-title>
+                                    <h4>All Data Types</h4>
+                                    </v-list-item-title>
+                                </v-list-item>
                                 <v-list-item
-                                    v-for="node in orderedNodeShapeNames"
-                                    :prepend-icon="getClassIcon(shapesDS.data.nodeShapeNames[node])"
-                                    :title="
-                                        getDisplayName(
-                                            shapesDS.data.nodeShapeNames[node],
-                                            configVarsMain,
-                                            allPrefixes,
-                                            shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[node]]
-                                        )
-                                    "
-                                    :value="shapesDS.data.nodeShapeNames[node]"
-                                    @click="selectType(shapesDS.data.nodeShapeNames[node], true, false, false)"
-                                ></v-list-item>
-                                <!-- Items: read only -->
-                                <span v-if="noEditClassList.length">
-                                    <v-divider
-                                        opacity=".7"
-                                        thickness="2"
-                                        gradient
-                                        style="margin-top: 1em; margin-bottom: 1em"
-                                    >
-                                        <small><em>Read Only</em></small>
-                                    </v-divider>
-                                    <v-list-item
-                                        v-for="node in noEditClassList"
-                                        :prepend-icon="getClassIcon(shapesDS.data.nodeShapeNames[node])"
-                                        :title="
-                                            getDisplayName(
-                                                shapesDS.data.nodeShapeNames[node],
-                                                configVarsMain,
-                                                allPrefixes,
-                                                shapesDS.data.nodeShapes[shapesDS.data.nodeShapeNames[node]]
-                                            )
-                                        "
-                                        :value="shapesDS.data.nodeShapeNames[node]"
-                                        @click="selectType(shapesDS.data.nodeShapeNames[node], true, false, false)"
-                                    >
-                                    </v-list-item>
-                                </span>
+                                    v-for="item in allClassItems"
+                                    :key="item.value"
+                                    :title="item.title"
+                                    :value="item.value"
+                                >
+                                    <template v-slot:prepend="{ isSelected, select }">
+                                        <v-list-item-action start>
+                                            <v-checkbox-btn :model-value="isSelected" @update:model-value="select"></v-checkbox-btn>
+                                        </v-list-item-action>
+                                    </template>
+                                    <template v-slot:append="{ }">
+                                        <v-tooltip :text="item.props.description" location="end" max-width="500px">
+                                            <template v-slot:activator="{ props }">
+                                                <v-icon v-bind="props">{{ item.props.icon }}</v-icon>
+                                            </template>
+                                        </v-tooltip>
+                                    </template>
+                                </v-list-item>
                             </v-list>
                         </v-navigation-drawer>
                         <!-- The main view containing records and forms -->
@@ -108,54 +73,91 @@
                         >
                             <!-- Everything is inside one container and one row -->
                             <v-container fluid>
-                                <v-row>
+                                <v-row v-if="fetchingFirstPages" justify="center" class="mt-4">
+                                    <div class="text-center">
+                                        <v-progress-circular indeterminate :size="90" :width="3" :color="configVarsMain.appTheme.link_color">
+                                            <template v-slot:default><em> Fetching<br>data... </em></template>
+                                        </v-progress-circular>
+                                    </div>
+                                </v-row>
+                                <v-row v-else>
                                     <!-- Column for records -->
                                     <v-col
                                         v-show="formOpen ? false : true"
-                                        class="transition-all"
+                                        class="transition-all ml-1"
                                         :class="formOpen ? 'opacity-column' : ''"
                                     >
-                                        <!-- Show records if a class is selected -->
-                                        <span v-if="selectedIRI">
-                                            <!-- Class header -->
-                                            <ShaclVueRecordsHeader
-                                                :selectedIRI="selectedIRI"
-                                                :selectedShape="selectedShape"
-                                                :fetchedItemCount="fetchedItemCount"
-                                                :totalItemCount="totalItemCount"
-                                                :internalHistory="internalHistory"
-                                                :showProgress="showProgress"
-                                                :canEditClass="canEditClass"
-                                                v-model:currentProgress="currentProgress"
-                                                v-model:headingHover="headingHover"
-                                                @go-back="goBack"
-                                                @create-record="addInstanceItem(selectedIRI)"
-                                            />
-                                            <!-- Class records -->
-                                            <ShaclVueRecords
-                                                :selectedIRI="selectedIRI"
-                                                :classRecordsLoading="classRecordsLoading"
-                                                :mobile="mobile"
-                                                :showScrollTopBtn="showScrollTopBtn"
-                                                :filteredRecords="(includeSubClasses ? filteredRecordItemsForClassWithSubclassItems : filteredRecordItemsByClass[selectedIRI]) || []"
-                                                :fetchedItemCount="fetchedItemCount"
-                                                :showFetchingPageLoader="showFetchingPageLoader"
-                                                v-model:searchText="searchText"
-                                                v-model:textMatchType="textMatchType"
-                                                v-model:orderTopDown="orderTopDown"
-                                                @scroll-end="onScrollEnd"
-                                                @user-typing="onUserTyping"
-                                                @handle-internal-navigation="handleInternalNavigation"
-                                                @scroll-to-top="scrollToTop"
-                                            />
-                                        </span>
-                                        <!-- If no class is selected, and there is HTML frontpage specified, show it -->
-                                        <span v-else-if="frontPageHTML" style="margin-top: 1em; margin-left: 1em;">
-                                            <div v-html="frontPageHTML"></div>
-                                        </span>
-                                        <!-- If no class is selected and no frontpage specified, show simple sentence -->
-                                        <span v-else style="margin-top: 1em; margin-left: 1em;">
-                                            <em>Select a data type</em>
+                                        <h1 style="margin-bottom: 0.5em;">All of the Things</h1>
+                                        <v-row>
+                                            <v-col :cols="props.mobile ? 12 : 8">
+                                                <v-text-field
+                                                    v-model="searchInput"
+                                                    density="compact"
+                                                    variant="outlined"
+                                                    :label="`Enter at least ${configVarsMain.serviceConstrainedSearch.min_characters} characters to search all records`"
+                                                    hide-details="auto"
+                                                    style="margin-bottom: 1em;"
+                                                    :disabled="openForms.length > 0"
+                                                    :class="props.mobile ? 'mobile-scaled' : '' "
+                                                >
+                                                    <template v-slot:append-inner>
+                                                        <v-icon
+                                                            v-if="searchInput"
+                                                            class="mr-2"
+                                                            @click.stop="clearField()"
+                                                            @mousedown.stop.prevent
+                                                        >
+                                                            mdi-close-circle
+                                                        </v-icon>
+                                                    </template>
+                                                </v-text-field>
+                                            </v-col>
+                                            <v-col v-if="!props.mobile"></v-col>
+                                        </v-row>
+                                        <v-tooltip text="Scroll to top" location="top end">
+                                            <template v-slot:activator="{ props: activatorProps }">
+                                                <v-fab
+                                                    v-if="props.showScrollTopBtn && openForms.length == 0"
+                                                    @click="scrollToTop"
+                                                    icon="mdi-arrow-up-bold"
+                                                    :app="true"
+                                                    style="bottom: 2em;"
+                                                    v-bind="activatorProps"
+                                                ></v-fab>
+                                            </template>
+                                        </v-tooltip>
+                                        <!-- All Class records -->
+                                        <span v-for="cl in allClassItems" :key="cl.value">
+                                            <v-sheet
+                                                v-show="classSelection.includes(cl.value) && cl.props.totalItemCount && itemsByClass[cl.value]?.length"
+                                                class="row-sheet border rounded pa-4 mb-4"
+                                            >
+                                                <v-row class="h-25" style="overflow-y: scroll;">
+                                                    <v-col cols="6" class="left-col">
+                                                        <h3 style="margin-bottom: 1em;">
+                                                            <v-icon>{{ cl.props.icon }}</v-icon> {{ cl.title }}
+                                                            <span v-if="showWizardGroup(
+                                                                    configVarsMain,
+                                                                    '_class',
+                                                                    cl.value,
+                                                                    allPrefixes,
+                                                                    shapesDS
+                                                                )">
+                                                                <WizardGroup :context="'_class'" :classUri="cl.value"></WizardGroup>
+                                                            </span>
+                                                        </h3>
+                                                        <p>{{ cl.props.description }}</p>
+                                                    </v-col>
+                                                    <v-col class="right-col">
+                                                        <ShaclVueRecordsMini
+                                                            :classIRI="cl.value"
+                                                            :items="itemsByClass[cl.value] || []"
+                                                            class="right-col-div"
+                                                            @scroll-end="onScrollEndOfClass(cl.value)"
+                                                        />
+                                                    </v-col>
+                                                </v-row>
+                                            </v-sheet>
                                         </span>
                                     </v-col>
 
@@ -204,7 +206,6 @@
                                                             "
                                                             :shape_iri="f.shapeIRI"
                                                             :node_idx="f.nodeIDX"
-                                                            :onSaveEvent="f.onSaveEvent"
                                                         ></FormEditor>
                                                     </div>
                                                 </v-expansion-panel-text>
@@ -213,6 +214,7 @@
                                     </v-col>
                                 </v-row>
                             </v-container>
+
                         </v-main>
                         <!-- Button to open/close submission drawer -->
                         <span v-if="configVarsMain.useService">
@@ -276,13 +278,13 @@ import { useClasses } from '@/composables/useClasses';
 import { useShapes } from '@/composables/useShapes';
 import { useForm } from '@/composables/useForm';
 import { useToken } from '@/composables/tokens';
-import { SHACL } from '@/modules/namespaces';
+import { RDFS, SHACL } from '@/modules/namespaces';
 import { useDisplay } from 'vuetify'
-import ShaclVueRecords from '@/components/ShaclVueRecords.vue';
-import ShaclVueRecordsHeader from '@/components/ShaclVueRecordsHeader.vue';
+import ShaclVueRecordsMini from '@/components/ShaclVueRecordsMini.vue';
 import { useRecords } from '@/composables/useRecords';
 import { useNavigation } from '@/composables/useNavigation';
 import { useSubmit } from '@/composables/useSubmit';
+import { showWizardGroup } from '@/composables/useWizard'
 
 // ----- //
 // PROPS //
@@ -307,6 +309,8 @@ var selectedItem = ref(null);
 const drawer = mobile.value ? ref(false) : ref(true);
 const canEditClass = ref(true)
 const openForms = reactive([]);
+const allItems = reactive({})
+const fetchingFirstPages = ref(false);
 
 // ------------------- //
 // RUN ALL COMPOSABLES //
@@ -375,7 +379,9 @@ const {
     classRecordsLoading,
     currentProgress,
     fetchedItemCount,
+    fetchNextPage,
     headingHover,
+    includedClasses,
     includeSubClasses,
     isFetchingPage,
     onScrollEnd,
@@ -389,8 +395,6 @@ const {
     totalItemCount,
     recordItemsByClass,
     filteredRecordItemsAll,
-    filteredRecordItemsByClass,
-    filteredRecordItemsForClassWithSubclassItems,
 } = useRecords(
     allPrefixes,
     allSubClasses,
@@ -536,14 +540,21 @@ watch(
             processSearchableFields();
             // Set component states from URL query parameters
             setViewFromQuery();
+            
             // Get all class-related data
             idFilteredNodeShapeNames.value = getIdFilteredNodeShapeNames(configVarsMain, ID_IRI);
-            noEditClassList.value = getNoEditClassList(configVarsMain, allPrefixes);
             filteredNodeShapeNames.value = getFilteredNodeShapeNames(configVarsMain, allPrefixes);
             priorityFilteredNodeShapeNames.value = getPriorityFilteredNodeShapeNames(priorityClassList);
             orderedNodeShapeNames.value = getOrderedNodeShapeNames(configVarsMain, allPrefixes);
             allClassItems.value = getAllClassItems(configVarsMain, allPrefixes, getClassIcon);
-            page_ready.value = true;
+            page_ready.value = true
+            // then fetch first page per class
+            fetchingFirstPages.value = true;
+            await getFirstPages();
+            fetchingFirstPages.value = false;
+            // Starter components needs 'selectType' to only run once at startup
+            let mainIRI = 'https://concepts.datalad.org/s/things/v2/Thing';
+            selectType(mainIRI, true, false, true)
         }
     },
     { immediate: true }
@@ -560,10 +571,87 @@ onBeforeUnmount(() => {
 // -------------- //
 // Computed props //
 // -------------- //
+const itemsByClass = computed(() => {
+    const map = {};
+    for (const item of filteredRecordItemsAll.value) {
+        const cl = item.props.subtitle;
+        if (!map[cl]) map[cl] = [];
+        map[cl].push(item);
+    }
+    return map;
+});
+
+const visibleClasses = computed(() =>
+    allClassItems.value.filter(cl =>
+        classSelection.includes(cl.value) &&
+        itemsByClass.value[cl.value]?.length
+    )
+);
+
+const searchInput = ref('');
+let debounceTypingTimer = null;
+watch(searchInput, (val) => {
+    clearTimeout(debounceTypingTimer);
+
+    debounceTypingTimer = setTimeout(() => {
+        searchText.value = val;
+    }, 200); // or 300ms
+});
+
+const allValues = computed(() => allClassItems.value.map(i => i.value))
+const allSelected = computed(() =>
+    allValues.value.length > 0 &&
+    allValues.value.every(v => classSelection.value.includes(v))
+)
+const isIndeterminate = computed(() =>
+    classSelection.value.length > 0 &&
+    classSelection.value.length < allValues.value.length
+)
+const classSelection = ref([])
+watch(
+    allClassItems,
+    (items) => {
+        if (items?.length) {
+            classSelection.value = items.map(i => i.value);
+        }
+    },
+    { immediate: true }
+)
+
+function toggleAll(val) {
+    classSelection.value = val ? [...allValues.value] : []
+}
+watch(
+  classSelection,
+  (items) => {
+        includedClasses.value = classSelection.value;
+  },
+  { immediate: true }
+)
 
 // --------- //
 // Functions //
 // --------- //
+async function getFirstPages() {
+    const promises = allClassItems.value.map(async (item) => {
+        const result = await fetchFromService(
+            'get-paginated-records-constrained',
+            item.value,
+            allPrefixes
+        );
+        const totalItems = getTotalItems(item.value);
+        if (totalItems > 0) {
+            item.props.totalItemCount = totalItems;
+        }
+    });
+    await Promise.all(promises);
+}
+
+function onScrollEndOfClass(classIRI) {
+    console.log(`Scroll end for class: ${classIRI}`)
+    fetchNextPage(classIRI)
+}
+
 function afterFormsClosed() {
     drawer.value = mobile.value ? false : true;
     canSubmit.value = true;
@@ -598,7 +686,30 @@ function scrollToTop() {
     });
 }
 
+function clearField() {
+    searchInput.value = '';
+    searchText.value = '';
+    textMatchType.value = 'partial';
+}
+
+function toggleOrder() {
+    orderTopDown.value = !orderTopDown.value;
+    if (orderTopDown.value) {
+        orderIcon.value = 'mdi-arrow-down-thick';
+    } else {
+        orderIcon.value = 'mdi-arrow-up-thick';
+    }
+}
+
+
 async function selectType(IRI, fromUser, fromBackButton, includeSubs=false) {
+    // Let's document this
+    // Currently, this is called either when a class is selected from the side pane
+    // or when a class is specified via URL query parameter.
+    // Much of what happens on selection is specific to rendering a single class
+    // and its items for the conventional `ShaclVue` component.
+    // Apart from that, which steps are actually minimally necessary?
+
     var tempIncludeSubs = includeSubClasses.value;
     includeSubClasses.value = includeSubs ? includeSubs : false;
     fetchedItemCount.value = null;
@@ -611,33 +722,7 @@ async function selectType(IRI, fromUser, fromBackButton, includeSubs=false) {
     textMatchType.value = 'partial';
     selectedIRI.value = IRI;
     selectedShape.value = shapesDS.data.nodeShapes[IRI];
-    canEditClass.value = configVarsMain.noEditClasses.indexOf(toCURIE(IRI, allPrefixes)) < 0 ? true : false
-    if (config.value.use_service) {
-        classRecordsLoading.value = true;
-        // First fetch rdf data from configured service
-        // The first fetch (when a class/type is selected) is always without a
-        // matching parameter, to get info about total items on server
-        var result = await fetchFromService('get-paginated-records-constrained', IRI, allPrefixes);
-        // If there was an actual error during the try statement
-        // before making the requests, relay error and deactivate loader
-        if (result.status === null) {
-            console.error(result.error);
-            classRecordsLoading.value = false;
-        }
-        // If any of the results were successful, do nothing
-        if (result.status.length && result.status.indexOf('success') >= 0) {
-        } else {
-            classRecordsLoading.value = false;
-        }
-
-        // We want to keep track of the progress of currently fetched items
-        // vs total items, so we need the total item count of the current class
-        var totalItems = getTotalItems(IRI)
-        if (totalItems > 0) {
-            totalItemCount.value = totalItems
-        }
-    }
-    classRecordsLoading.value = false
+    canEditClass.value = configVarsMain.noEditClasses.indexOf(toCURIE(IRI, allPrefixes)) < 0 ? true : false;
     scrollToTop();
     if (fromUser) {
         updateURL(IRI, false, null, allPrefixes);
@@ -733,5 +818,24 @@ a:active {
   border-radius: 0 6px 6px 0;
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.3);
   z-index: 2000;
+}
+
+.row-sheet {
+  max-height: 30vh;
+  overflow: hidden;
+}
+
+.left-col {
+  height: 100%;
+  overflow-y: scroll;
+}
+
+.right-col {
+  height: 100%;
+}
+
+.right-col-div {
+    max-height: 30vh;
+    overflow-y: auto;
 }
 </style>
