@@ -11,11 +11,9 @@
             </a>
         </template>
         <v-app-bar-title>
-            <a @click="goToHome()" class="header-button"
-                ><code style="font-size: 1em">{{
-                    configVarsMain.appName
-                }}</code></a
-            >
+            <a @click="goToHome()" class="header-button">
+                <code style="font-size: 1em">{{appName}}</code>
+            </a>
         </v-app-bar-title>
 
         <template v-slot:append>
@@ -365,12 +363,16 @@ const orderTopDown = ref(true);
 const orderIcon = ref('mdi-arrow-down-thick');
 
 const filterConfigText = ref('');
+const appVariant = import.meta.env.VITE_SHACLVUE_VARIANT;
+const appName = ref('');
 
 onBeforeMount(() => {
     if (token.value !== null && token.value !== 'null') {
         tokenExists.value = true;
         tokenval.value = token.value;
     }
+    let variantAppName = `app_name_${appVariant}`;
+    appName.value = config.value[variantAppName] || configVarsMain.appName; 
 });
 
 const filteredConfigOptions = computed(() => {
