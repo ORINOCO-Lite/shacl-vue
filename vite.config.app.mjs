@@ -18,6 +18,11 @@ const commitHashShort = execSync('git rev-parse --short HEAD')
     .trim();
 const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
 
+// Output directory of build process
+const outDir = process.env.VITE_OUT_DIR || 'dist/app';
+const variant = process.env.VITE_SHACLVUE_VARIANT || 'default';
+console.log(`Building shacl-vue application variant: '${variant}'`)
+
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [
@@ -67,7 +72,7 @@ export default defineConfig({
         extensions: ['.js', '.json', '.jsx', '.mjs', '.ts', '.tsx', '.vue'],
     },
     build: {
-        outDir: 'dist/app',
+        outDir,
         emptyOutDir: true,
         sourcemap: true,
         rollupOptions: {
