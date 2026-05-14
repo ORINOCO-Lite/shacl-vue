@@ -1,7 +1,7 @@
 <template>
     <v-app>
-        <!-- <component :is="appVariant" /> -->
-        <component :is="appVariant" :configUrl="confURL"></component>
+        <component :is="appVariant" />
+        <!-- <component :is="appVariant" :configUrl="confURL"></component> -->
     </v-app>
 </template>
 
