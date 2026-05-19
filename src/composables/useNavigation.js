@@ -6,6 +6,7 @@ export function useNavigation(
     allPrefixes,
     configVarsMain,
     editInstanceItem,
+    fetchFromService,
     internalHistory,
     rdfDS,
     searchText,
@@ -36,7 +37,7 @@ export function useNavigation(
         }
 
         if (nodeShape) {
-            console.log('Nodeshape in queryparams');
+            console.log(`Nodeshape in queryparams: ${nodeShape}`);
             // this could be a curie or iri
             // check if iri is in
             var nodeShapeIRI = toIRI(nodeShape, allPrefixes);
@@ -56,6 +57,11 @@ export function useNavigation(
                     if (instance_pid) {
                         instanceIRI = toIRI(instance_pid, allPrefixes);
                         if (instanceIRI) {
+                            const results = await fetchFromService(
+                                'get-record',
+                                instanceIRI,
+                                allPrefixes
+                            );
                             // queried_pid.value = instanceIRI;
                             textMatchType.value = 'exact';
                             searchText.value = instanceIRI;

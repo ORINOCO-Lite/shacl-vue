@@ -437,6 +437,7 @@ const {
     allPrefixes,
     configVarsMain,
     editInstanceItem,
+    fetchFromService,
     internalHistory,
     rdfDS,
     searchText,
