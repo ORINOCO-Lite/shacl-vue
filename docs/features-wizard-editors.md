@@ -132,3 +132,12 @@ Finally, another new config option `wizard_editor_selection` can be used to spec
 ::: info
 TODO
 :::
+
+
+## Nunjucks support
+
+::: info
+TODO
+:::
+
+See: https://hub.psychoinformatics.de/orinoco/shacl-vue/commit/fe85c08ccc416f1e21559b8950e5f3a636f0a500

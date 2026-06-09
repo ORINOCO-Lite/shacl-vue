@@ -94,6 +94,11 @@ const config = defineConfig({
           { text: 'Config-driven editor matching', link: '/features-editor-matching' },
           { text: 'File upload', link: '/features-file-upload' },
           { text: 'Wizard editors', link: '/features-wizard-editors' },
+          { text: 'Record viewer customization', link: '/features-record-viewer' },
+          { text: 'Priority classes', link: '/features-priority-classes' },
+          { text: 'Form property ordering', link: '/features-property-ordering' },
+          { text: 'Starter variant', link: '/features-starter' },
+          { text: 'Runtime plugins', link: '/features-runtime-plugins' },
         ]
       },
       {
