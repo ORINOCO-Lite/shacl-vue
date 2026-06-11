@@ -103,7 +103,7 @@ The core of the wizard lies in its specification of `input`s. An `input` can hav
 
 Another core part of the wizard specification is the TTL template string, which will be populated using the values entered for the wizard inputs. The TTL string format is the same as is already supported by `shacl-vue`. For example:
 
-```ttl
+```turtle
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dlthings: <https://concepts.datalad.org/s/things/unreleased/> .
 @prefix ror: <https://ror.org/> .
