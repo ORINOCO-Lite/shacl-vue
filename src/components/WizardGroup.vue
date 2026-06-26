@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount, onMounted, inject, toRaw } from 'vue';
+import { ref, onBeforeUnmount, onMounted, inject, watch } from 'vue';
 import SVGIcon from '@/components/SVGIcon.vue'
 import { useWizard } from '@/composables/useWizard';
 
@@ -63,16 +63,27 @@ const {
 // Lifecycle methods //
 // ----------------- //
 onMounted(() => {
-    setupWizards(props.context, props.classUri, configVarsMain, allPrefixes, shapesDS)
-    if (props.context == '_record') {
-        registerHandler('cancel', cancelWizardForm)
-        registerHandler('save', saveWizardForm)
-    }
+    updateSetup(props.classUri)
 });
+
+watch(
+  () => props.classUri,
+  (newValue, oldValue) => {
+    if (newValue !== oldValue) updateSetup(newValue)
+  }
+);
 
 // --------- //
 // Functions //
 // --------- //
+function updateSetup(classUri) {
+    console.log(`updatesetup wizardgroup`)
+    setupWizards(props.context, classUri, configVarsMain, allPrefixes, shapesDS)
+    if (props.context == '_record') {
+        registerHandler('cancel', cancelWizardForm)
+        registerHandler('save', saveWizardForm)
+    }
+}
 
 function cancelWizardForm() {
     onFormWithWizardCancel(savedNodes, nodesToSubmit, rdfDS)

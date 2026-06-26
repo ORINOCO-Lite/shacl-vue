@@ -50,6 +50,7 @@ export function useWizard() {
     // Functions //
     // --------- //
     function setupWizards(context, class_IRI, configVarsMain, allPrefixes, shapesDS) {
+        Object.keys(wizardEditors).forEach(k => delete wizardEditors[k])
         let classCurie = toCURIE(class_IRI, allPrefixes)
         // Load wizard editors if any
         let wizardsToAdd = new Set();
