@@ -487,7 +487,7 @@ function removeTriple(class_uri, subject_uri, predicate_uri, current_idx) {
 }
 
 function isExtraIndex(idx) {
-    if (formData.content[localNodeUid.value][localNodeIdx.value][my_uid.value].length > 1 && idx > 0) {
+    if (formData.content[localNodeUid.value][localNodeIdx.value][my_uid.value].length > 1 && idx > 0 && idx < currentCount.value) {
         return true
     }
     return false
