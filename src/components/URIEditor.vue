@@ -208,6 +208,12 @@ export const matchingLogic = (shape) => {
                 return shape[SHACL.datatype.value] == XSD.anyURI.value;
             }
         }
+        // sh:nodeKind == sh:IRI and sh:datatype does not exists
+        if ((shape[SHACL.nodeKind.value] == SHACL.IRI.value) &&
+            !shape.hasOwnProperty(SHACL.datatype.value)
+        ) {
+            return true
+        }
     }
     // if sh:nodeKind does not exist, but datatype still exists
     if (shape.hasOwnProperty(SHACL.datatype.value)) {
