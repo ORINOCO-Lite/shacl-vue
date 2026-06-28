@@ -101,6 +101,11 @@
                     </span>
                 </span>
                 <br />
+                <NodeShapeEditor
+                    :key="localShapeIri"
+                    :shape_iri="localShapeIri"
+                    :node_idx="localNodeIdx"
+                />
                 <div class="top-1">
                     <v-switch
                         v-model="show_all_fields"
@@ -109,11 +114,6 @@
                         color="primary"
                     ></v-switch>
                 </div>
-                <NodeShapeEditor
-                    :key="localShapeIri"
-                    :shape_iri="localShapeIri"
-                    :node_idx="localNodeIdx"
-                />
                 <div style="display: flex">
                     <v-tooltip text="Scroll to top" location="top">
                         <template v-slot:activator="{ props }">
