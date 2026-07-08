@@ -734,13 +734,11 @@ async function selectType(IRI, fromUser, fromBackButton, includeSubs=false) {
 
     if (firstNavigationDone.value) {
         if (!fromBackButton) {
-            if (IRI != tempIRI) {
-                internalHistory.value.push({
-                    iri: tempIRI,
-                    searchText: tempSearchText,
-                    includeSubs: tempIncludeSubs,
-                });
-            }
+            internalHistory.value.push({
+                iri: tempIRI,
+                searchText: tempSearchText,
+                includeSubs: tempIncludeSubs,
+            });
         }
     } else {
         firstNavigationDone.value = true;
