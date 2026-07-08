@@ -1,16 +1,16 @@
 <template>
-    <v-card class="mx-4 mb-4" :variant="props.variant">
+    <v-card class="mx-4 mb-4" :variant="props.variant" v-if="localItem.props" >
         <v-card-title :class="mobile ? 'text-body-1' : 'text-h6'" style="display: flex; align-items: center; gap: 6px;">
             <v-icon>{{ getClassIcon(props.classIRI) }}</v-icon
             >&nbsp;
             <span class="card-title">
-                {{ record.prefLabel ? record.prefLabel : ( record.displayLabel ? record.displayLabel : record.title) }}
+                {{ localItem.prefLabel ? localItem.prefLabel : ( localItem.displayLabel ? localItem.displayLabel : localItem.title) }}
             </span>
             <span v-if="resolveExternally">
                 <sup
                     ><a
                         class="inline-icon-btn"
-                        :href="toIRI(record.title, allPrefixes)"
+                        :href="toIRI(localItem.title, allPrefixes)"
                         target="_blank"
                         ><v-icon>mdi-arrow-top-right-thick</v-icon></a
                     ></sup
@@ -18,7 +18,7 @@
             </span>
         </v-card-title>
         <v-card-subtitle :class="mobile ? 'text-caption' : ''" >
-            Type: <em>{{ toCURIE(record.subtitle, allPrefixes) }}</em> <span v-if="!mobile">&nbsp;</span>
+            Type: <em>{{ toCURIE(localItem.props.subtitle, allPrefixes) }}</em> <span v-if="!mobile">&nbsp;</span>
             <span v-if="mobile"><br></span>
             <span v-if="!props.formOpen">
                 <v-tooltip text="Edit record" location="bottom">
@@ -29,7 +29,7 @@
                             variant="tonal"
                             size="x-small"
                             class="rounded-lg"
-                            @click="editInstanceItem(record)"
+                            @click="editInstanceItem(localItem)"
                             :disabled="props.formOpen || !canEditClass"
                             v-bind="props"
                         ></v-btn>
@@ -77,45 +77,46 @@
         <v-card-text v-if="!props.formOpen" :class="mobile ? 'text-caption' : ''">
             <v-row align="stretch">
                 <v-col :cols="showBackLinks ? 6 : 12">
-                    <strong>Persistent Identifier</strong>: &nbsp;{{ record.title}}<br/>
+                    <strong>Persistent Identifier</strong>: &nbsp;{{ localItem.title}}<br/>
 
-                    <!-- Literal nodes -->
-                    <span v-for="(v, k, index) in record.triples['Literal']">
-                        <span v-if="propertyShapes[k]">
-                            <strong>
-                                {{
-                                    nameOrCURIE(
-                                        propertyShapes[k],
-                                        shapesDS.data.prefixes,
-                                        true
-                                    )
-                                }}
-                            </strong>:
-                        </span>
-                        <span v-else>
-                            <strong>{{ k }}</strong>:
-                        </span>
-                        <span v-for="(el, i) in v.values">
-                            <span v-if="i < showCounts['Literal'][k]">
-                                <span v-if="v.values.length > 1"><br/>&nbsp;-</span>
-                                &nbsp;<LiteralNodeViewer v-if="el.value" :textVal="el.value" :wrap="textWrapping" :width="textTruncateWidth"></LiteralNodeViewer>
-                            </span>
-                        </span>
-                        <br/>
-                        <MoreOrLessRecordsViewer
-                            :records="v.values"
-                            v-model:count="showCounts['Literal'][k]"
-                            :stepSize="defaultStep"
-                        ></MoreOrLessRecordsViewer>
-                    </span>
-
-
-                    <!-- Named nodes -->
                     <span v-if="fetchingRecords">
                         <v-skeleton-loader type="paragraph"></v-skeleton-loader>
                     </span>
                     <span v-else>
-                        <span v-for="(v, k, index) in record.triples['NamedNode']">
+
+                        <!-- Literal nodes -->
+                        <span v-for="(v, k, index) in localItem.triples['Literal']">
+                            <span v-if="propertyShapes[k]">
+                                <strong>
+                                    {{
+                                        nameOrCURIE(
+                                            propertyShapes[k],
+                                            shapesDS.data.prefixes,
+                                            true
+                                        )
+                                    }}
+                                </strong>:
+                            </span>
+                            <span v-else>
+                                <strong>{{ k }}</strong>:
+                            </span>
+                            <!-- <span>{{v.values}} | {{ showCounts['Literal'][k] }}</span> -->
+                            <span v-for="(el, i) in v.values">
+                                <span v-if="i < showCounts['Literal'][k]">
+                                    <span v-if="v.values.length > 1"><br/>&nbsp;-</span>
+                                    &nbsp;<LiteralNodeViewer v-if="el" :textVal="el.value ?? el" :wrap="textWrapping" :width="textTruncateWidth"></LiteralNodeViewer>
+                                </span>
+                            </span>
+                            <br/>
+                            <MoreOrLessRecordsViewer
+                                :records="v.values"
+                                v-model:count="showCounts['Literal'][k]"
+                                :stepSize="defaultStep"
+                            ></MoreOrLessRecordsViewer>
+                        </span>
+
+                        <!-- Named nodes -->
+                        <span v-for="(v, k, index) in localItem.triples['NamedNode']">
                             <span v-if="k != RDF.type.value">
                                 <span v-if="propertyShapes[k]">
                                     <strong>
@@ -130,25 +131,18 @@
                                         :records="v.values"
                                         v-model:count="showCounts['NamedNode'][k]"
                                         :stepSize="defaultStep"
+                                        @more-button-pressed="showMoreRecords('NamedNode', k, $event)"
                                     ></MoreOrLessRecordsViewer>
                                     <span v-for="(el, i) in v.values">
                                         <span v-if="i < showCounts['NamedNode'][k]">
-                                            <span v-if="v.values.length > 1"><br />&nbsp;-&nbsp;</span>
+                                            <span v-if="v.values?.length > 1"><br />&nbsp;-&nbsp;</span>
                                             <NamedNodeViewer
-                                                v-if="el.value"
-                                                :textVal="el.value"
-                                                :prefLabel="
-                                                    getPrefLabel(el, rdfDS, allPrefixes)
-                                                "
-                                                :displayLabel="
-                                                    getRecordDisplayLabel(el, rdfDS, allPrefixes, configVarsMain)
-                                                "
-                                                :quad="
-                                                    getPidQuad(el.value, rdfDS.data.graph)
-                                                "
-                                                :targetClass="
-                                                    propertyShapes[k][SHACL.class.value]
-                                                "
+                                                v-if="el"
+                                                :textVal="el"
+                                                :prefLabel="v.prefLabels?.[i]"
+                                                :displayLabel="v.displayLabels?.[i]"
+                                                :quad="getPidQuad(el, rdfDS.data.graph)"
+                                                :targetClass="propertyShapes[k][SHACL.class.value]"
                                             >
                                             </NamedNodeViewer>
                                         </span>
@@ -159,7 +153,7 @@
                                     >:
                                     <span v-for="(el, i) in v.values">
                                         <span v-if="i < showCounts['NamedNode'][k]">
-                                            <span v-if="v.values.length > 1"><br />&nbsp;-</span>
+                                            <span v-if="v.values?.length > 1"><br />&nbsp;-</span>
                                             &nbsp;{{ el.value }}
                                         </span>
                                     </span>
@@ -167,45 +161,46 @@
                                 <br>                        
                             </span>
                         </span>
-                    </span>
-                    <!-- Now show all blank nodes for which a display label has been configured, which makes them special-->
-                    <!-- TODO: how do we deal with preflabel here ??? -->
-                    <span v-for="(v,k) in specialBlankNodes">
-                        <strong>
-                            {{
-                                nameOrCURIE(
-                                    propertyShapes[k],
-                                    shapesDS.data.prefixes,
-                                    true
-                                )
-                            }}
-                        </strong>:&nbsp;&nbsp;<MoreOrLessRecordsViewer
-                            :records="v.items.map(i => i.value)"
-                            v-model:count="showCounts['BlankNodeSpecial'][k]"
-                            :stepSize="defaultStep"
-                        ></MoreOrLessRecordsViewer>
-                        <span v-for="(item, i) in v.items">
-                            <span v-if="i < showCounts['BlankNodeSpecial'][k]" class="line-item">
-                                <span v-if="item.keyPropertyRole?.classIRI && item.keyPropertyRole?.recordPID">
+                    
+                        <!-- Now show all blank nodes for which a display label has been configured, which makes them special-->
+                        <span v-for="(v,k) in specialBlankNodes">
+                            <strong>
+                                {{
+                                    nameOrCURIE(
+                                        propertyShapes[k],
+                                        shapesDS.data.prefixes,
+                                        true
+                                    )
+                                }}
+                            </strong>:&nbsp;&nbsp;<MoreOrLessRecordsViewer
+                                :records="v.items.map(i => i.value)"
+                                v-model:count="showCounts['BlankNodeSpecial'][k]"
+                                :stepSize="defaultStep"
+                                @more-button-pressed="showMoreRecords('BlankNodeSpecial', k, $event)"
+                            ></MoreOrLessRecordsViewer>
+                            <span v-for="itm in v.sortedVisibleItems(showCounts['BlankNodeSpecial'][k])"
+                                :key="itm.index"
+                                class="line-item">
+                                <span v-if="itm.keyPropertyRole?.classIRI && itm.keyPropertyRole?.recordPID">
                                     &nbsp;-&nbsp;
                                     <v-tooltip location="top start">
                                         <template v-slot:activator="{ props }">
                                             <a
                                                 v-bind="props"
                                                 style="cursor: pointer"
-                                                @click.prevent="selectNamedNode(item.keyPropertyRole.classIRI, item.keyPropertyRole.recordPID)"
-                                                >{{ item.displayLabel }}</a
+                                                @click.prevent="selectNamedNode(itm.keyPropertyRole.classIRI, itm.keyPropertyRole.recordPID)"
+                                                >{{ itm.displayLabel }}</a
                                             >
                                         </template>
                                         <template v-slot:default="{ isActive }">
-                                            <v-icon >{{ getClassIcon(item.keyPropertyRole.classIRI, allPrefixes) }}</v-icon>
-                                            {{ getDisplayName(item.keyPropertyRole.classIRI, configVarsMain, allPrefixes, shapesDS.data.nodeShapes[item.keyPropertyRole.classIRI]) }}
+                                            <v-icon >{{ getClassIcon(itm.keyPropertyRole.classIRI, allPrefixes) }}</v-icon>
+                                            {{ getDisplayName(itm.keyPropertyRole.classIRI, configVarsMain, allPrefixes, shapesDS.data.nodeShapes[itm.keyPropertyRole.classIRI]) }}
                                         </template>
                                     </v-tooltip>
                                     
                                 </span>
                                 <span v-else>
-                                    &nbsp;-&nbsp;<LiteralNodeViewer :textVal="item.displayLabel" :wrap="'wrap'" :allowLink="false"></LiteralNodeViewer>
+                                    &nbsp;-&nbsp;<LiteralNodeViewer :textVal="itm.displayLabel" :wrap="'wrap'" :allowLink="false"></LiteralNodeViewer>
                                 </span>
                             </span>
                         </span>
@@ -215,14 +210,14 @@
                     <v-divider vertical />
                 </v-col>
                 <v-col>
-                    <BackLinkViewer v-if="firstUpdateDone && !hideBackLinks" v-show="showBackLinks" :record="record" @has-referencing-records="showBackLinks = true"></BackLinkViewer>
+                    <BackLinkViewer v-if="firstUpdateDone && !hideBackLinks" v-show="showBackLinks" :record="item" @has-referencing-records="showBackLinks = true"></BackLinkViewer>
                 </v-col>
             </v-row>
             <!-- Blank nodes -->
             <span v-if="showBackLinks && !hideBackLinks"><br /></span>
             <v-btn
                 no-gutters
-                v-if="Object.keys(record.triples['BlankNode']).length > 0"
+                v-if="Object.keys(localItem.triples['BlankNode']).length > 0"
                 @click="showHideBlankNodes()"
                 density="compact"
                 :append-icon="
@@ -233,7 +228,7 @@
             >
             <span v-if="showBlankNodes">
                 <br /><br />
-                <span v-for="(v, k, index) in record.triples['BlankNode']">
+                <span v-for="(v, k, index) in localItem.triples['BlankNode']">
                     <strong>
                         {{
                             nameOrCURIE(
@@ -246,19 +241,20 @@
                         :records="v.values"
                         v-model:count="showCounts['BlankNode'][k]"
                         :stepSize="defaultStep"
+                        @more-button-pressed="showMoreRecords('BlankNode', k, $event)"
                     ></MoreOrLessRecordsViewer>
                     <br />
                     <span v-if="specialBlankNodes[k]?.items">
-                        <span v-for="(item, i) in specialBlankNodes[k].items">
+                        <span v-for="(itm, i) in specialBlankNodes[k].items">
                             <div v-if="i < showCounts['BlankNode'][k]">
-                                <BlankNodeViewer :node="item.value" />
+                                <BlankNodeViewer :node="blankNode(itm.value)" />
                             </div>
                         </span>
                     </span>
                     <span v-else>
                         <span v-for="(el, i) in v.values">
                             <div v-if="i < showCounts['BlankNode'][k]">
-                                <BlankNodeViewer :node="el"></BlankNodeViewer>
+                                <BlankNodeViewer :node="blankNode(el)"></BlankNodeViewer>
                             </div>
                         </span>
                     </span>
@@ -309,6 +305,8 @@ import {
     watch,
     provide,
     computed,
+    toRaw,
+    nextTick,
 } from 'vue';
 import {
     makeReadable,
@@ -329,21 +327,25 @@ import {
     toIRI,
     toCURIE,
 } from '@/modules/utils';
-import { RDF, SHACL } from '@/modules/namespaces';
+import { RDF, SHACL, SKOS } from '@/modules/namespaces';
 import MoreOrLessRecordsViewer from '@/components/MoreOrLessRecordsViewer.vue';
 import SpecialButton from '@/components/SpecialButton.vue'
 import { useCompConfig } from '@/composables/useCompConfig';
 import { useDisplay } from 'vuetify'
 import BackLinkViewer from './BackLinkViewer.vue';
+import { DataFactory } from 'n3';
+const { blankNode, namedNode } = DataFactory;
 const { mobile } = useDisplay()
 // Define component properties
 const props = defineProps({
     classIRI: String,
+    item: Object,
     quad: Object,
     variant: String,
     formOpen: Boolean,
 });
-
+const { item } = props;
+const localItem = reactive({});
 const editInstanceItem = inject('editInstanceItem');
 const configVarsMain = inject('configVarsMain');
 const allPrefixes = inject('allPrefixes');
@@ -352,7 +354,8 @@ const getClassIcon = inject('getClassIcon');
 const rdfDS = inject('rdfDS');
 const shapesDS = inject('shapesDS');
 const lastSavedNode = inject('lastSavedNode');
-const record = reactive({});
+const recordItemsAll = inject('recordItemsAll');
+const constructItem = inject('constructItem');
 const showBlankNodes = ref(false);
 const shape_obj = shapesDS.data.nodeShapes[props.classIRI];
 const resolveExternally = ref(false);
@@ -393,7 +396,8 @@ const showSpecialButtons = ref(false);
 const specialButtons = reactive({});
 const showBackLinks = ref(false);
 const firstUpdateDone = ref(false);
-const hideBackLinksConfig = componentConfig?.hideBackLinks;
+// const hideBackLinksConfig = componentConfig?.hideBackLinks;
+const hideBackLinksConfig = true;
 const hideBackLinks = ref(true);
 if (hideBackLinksConfig === false || Array.isArray(hideBackLinksConfig) &&
     !hideBackLinksConfig.includes(toCURIE(props.classIRI, allPrefixes))) {
@@ -415,7 +419,7 @@ onBeforeMount(async () => {
     }
     canEditClass.value = configVarsMain.noEditClasses.indexOf(toCURIE(props.classIRI, allPrefixes)) < 0 ? true : false
     fetchingRecords.value = true;
-    await updateRecord(true);
+    await updateItem();
     fetchingRecords.value = false;
     firstUpdateDone.value = true;
     let recordPIDprefix = toCURIE(props.quad.subject.value, allPrefixes, 'parts').prefix;
@@ -425,103 +429,177 @@ onBeforeMount(async () => {
     initShowCounts();
 });
 
-const specialBlankNodes = computed( () => {
-    const triples = record.triples?.['BlankNode'] ?? {};
-    const result = {};
-    for (const [key, v] of Object.entries(triples)) {
-        if (!v.configDisplayLabel || !Array.isArray(v.values)) continue
-        const merged = v.values.map((value, i) => ({
-            value,
-            displayLabel: v.displayLabels?.[i] ?? '',
-            keyPropertyRole: v.keyPropertyRoles?.[i] ?? null,
-        }))
-        const sorted = merged.sort((a, b) => {
-            // display labels starting with 'http' are deprioritized
-            const aIsHttp = a.displayLabel.trim().toLowerCase().startsWith('http')
-            const bIsHttp = b.displayLabel.trim().toLowerCase().startsWith('http')
-            if (aIsHttp && !bIsHttp) return 1
-            if (!aIsHttp && bIsHttp) return -1
-            // within each group, sort alphabetically
-            return a.displayLabel.localeCompare(b.displayLabel, undefined, { sensitivity: 'base' })
-        })
-        result[key] = {
-            ...v,
-            items: sorted,
-        }
-    }
-    return result
-})
-
-
-async function viewRDF() {
-    ttlDialog.value = false;
-    ttlDialog_icon.value = getClassIcon(props.classIRI);
-    ttlDialog_name.value = record.prefLabel ? record.prefLabel : record.title;
-    ttlDialog_type.value = toCURIE(record.subtitle, allPrefixes);
-    var rQs = getRecordQuads(record.value, rdfDS.data.graph, true)
-    var tmpStr = await quadsToTTL(rQs, allPrefixes);
-    ttlDialog_content.value = tmpStr.replace(/^\s+/g, '');
-    ttlDialog_content.value = '\n' + ttlDialog_content.value;
-    ttlDialog.value = true;
-}
-
-function downloadTTL() {
-    dlTTL(ttlDialog_content.value, toSnakeCase(ttlDialog_name.value) + '.ttl');
-}
-
-function showHideBlankNodes() {
-    showBlankNodes.value = !showBlankNodes.value;
-}
 
 function initShowCounts() {
     for (const n of ['BlankNodeSpecial', 'BlankNode', 'NamedNode', 'Literal']) {
         const nt = n == 'BlankNodeSpecial' ? 'BlankNode' : n
-        for (const pred in record.triples[nt]) {
-            if (!showCounts[n].hasOwnProperty(pred)) {
-                showCounts[n][pred] = defaultStep;
-            }
+        for (const pred in localItem.triples[nt]) {
+            showCounts[n][pred] = defaultStep;
         }
     }
 }
 
 
-async function updateRecord(fetchData, from) {
-    record.title = props.quad.subject.value;
-    record.quad = props.quad;
-    record.value = props.quad.subject.value;
-    record.subtitle = props.quad.object.value;
-    record.relatedQuads = rdfDS.getSubjectTriples(props.quad.subject);
-    record.prefLabel = getPrefLabel(props.quad.subject, rdfDS, allPrefixes);
-    record.triples = {
-        Literal: {},
-        BlankNode: {},
-        NamedNode: {},
-    };
-    const promises = record.relatedQuads.map(rQ =>
-        addRecordProperty(rQ, fetchData)
-    )
-    await Promise.all(promises)
-    const end = performance.now()
-    record.displayLabel = getRecordDisplayLabel(record.quad.subject, rdfDS, allPrefixes, configVarsMain)    
-    // Now we have all record.triples, and we need to get displaylabels for blanknodes
-    for (const triplePred in record.triples['BlankNode']) {
-        let cIRI = propertyShapes[triplePred][SHACL.class.value];
-        record.triples['BlankNode'][triplePred].classIRI = cIRI;
-        record.triples['BlankNode'][triplePred].configDisplayLabel = hasConfigDisplayLabel(cIRI, allPrefixes, configVarsMain);
-        for (var i=0; i<record.triples['BlankNode'][triplePred].values.length; i++) {
-            let tripNode = record.triples['BlankNode'][triplePred].values[i]
-            let dL = getRecordDisplayLabel(tripNode, rdfDS, allPrefixes, configVarsMain)
-            let pL = getPrefLabel(tripNode, rdfDS, allPrefixes)
-            record.triples['BlankNode'][triplePred].displayLabels.push(dL)
-            record.triples['BlankNode'][triplePred].prefLabels.push(pL)
+async function updateItem(update=false) {
+    // Completely reset reactive object
+    for (const key of Object.keys(localItem)) {
+        delete localItem[key];
+    }
+    // Distinguish between an update triggered by a record edit_save event
+    // and the normal onMount behaviour
+    let newItem
+    if (update) {
+        newItem = constructItem(props.item);
+        newItem._displayLabel = structuredClone(toRaw(recordItemsAll[props.item]._displayLabel));
+    } else {
+        newItem = structuredClone(toRaw(recordItemsAll[props.item]));
+    }
+    // Recreate fresh structure
+    for (const key of Object.keys(newItem)) {
+        localItem[key] = newItem[key]
+    }
+    localItem.quad = props.quad;
+
+    // An incoming item has already been preprocessed to a minimal level by functionality in 
+    // `useRecords` when the  node was added to the graph store initially. This led to the entry
+    // of the item into the global `recordItemsAll`. It is assumed that the item already has a
+    // preflabel and displaylabel entered.
+
+    // The item will have the format:
+    // var item = {
+    //     title: record,
+    //     value: record,
+    //     props: {
+    //         subtitle: recordClass,
+    //         quad: mainQuad,
+    //         itemValue: record,
+    //         _prefLabel: '',
+    //         _displayLabel: '',
+    //         _searchBlob: '',
+    //         ...
+    //     },   
+    //     triples: {
+    //         Literal: {...},
+    //         BlankNode: {...},
+    //         NamedNode: {...},
+    //     }
+    // };
+
+    // Item has the 'triples' field with content inside e.g.: 
+    // item.triples[termType][quad.predicate.value] = {
+    //     values: [], // this will be an array (could be empty)
+    //     // the keys below will not exist if this item has not been processed by a NodeShapeViewer yet
+    //     displayLabels: [], 
+    //     prefLabels: [],
+    //     keyPropertyRoles: [],
+    //     relatedTriples: [],
+    // };
+
+    // A) For literal triples: no need to fetch related nodes or format the value/display
+    //    i.e.: nothing to do
+    // B) For namedNode triples: we want to process, for each property, each value that is initially displayed
+    //    This means for that we break the loop once we reach the default step size, because that limits what
+    //    will initially be rendered.
+
+    // First we get all records required for the record display name
+    for (const k of Object.keys(localItem._displayLabel.parts)) {
+        const v = localItem._displayLabel.parts[k];
+        if (v.termType != 'NamedNode') {
+            continue;
+        }
+        // TODO: what if v is an array? should we deal with that here? and where else?
+        const results = await fetchFromService(
+            'get-record',
+            v.value,
+            allPrefixes,
+            '',
+            recordItemsAll,
+        );
+        if (results?.status?.includes('success') || results?.status?.includes("skipped")) {
+            // Now we first need to be sure that the record is processed after fetching
+            // We can only wait for records that are actually fetched, i.e. the result status includes success
+            const recordFetched = results.url.some(entry =>
+                entry.records?.includes(v.value)
+            );
+            if (recordFetched) {
+                const record = await waitForRecordProcessing(v.value);
+                await nextTick();
+            }
         }
     }
+    // Now calculate display and pref labels for the current record, from scratch
+    localItem.prefLabel = getPrefLabel(props.quad.subject, rdfDS, allPrefixes);
+    localItem.displayLabel = getRecordDisplayLabel(props.quad.subject, rdfDS, allPrefixes, configVarsMain)
+    // TODO: reconsider. Should we be updating the global
+    // if calculated values are different from what is registered globally, update global value
+    if (recordItemsAll[localItem.value]?.props?._prefLabel != localItem.prefLabel) {
+        console.log(`local preflabel (${localItem.prefLabel}) is different, updating global value (prev: ${recordItemsAll[localItem.value].props._prefLabel})`)
+        recordItemsAll[localItem.value].props._prefLabel = localItem.prefLabel;
+    }
+    if (recordItemsAll[localItem.value]?.props?._displayLabel != localItem.displayLabel) {
+        console.log(`local display label (${localItem.displayLabel}) is different, updating global value (prev: ${recordItemsAll[localItem.value].props._displayLabel})`)
+        recordItemsAll[localItem.value].props._displayLabel = localItem.displayLabel;
+    }    
+    // TODO: we need to trigger a recalculation of the searchblob here IF either or both of these values
+    // were updated for the item in recordItemsAll
+    var termType = 'NamedNode';
+    // For each NamedNode property
+    for (const propURI of Object.keys(localItem.triples[termType])) {
+        // We skip the RDF.type predicate
+        if (propURI == RDF.type.value) continue;
+        // Get the content object:
+        const tripleObj = localItem.triples[termType][propURI];
+        initializeHelperArrays(termType, propURI, ['displayLabels', 'prefLabels'])
+        // Now we loop over all values of the current property
+        for (const [i, value] of tripleObj.values.entries()) {            
+            // We want to limit upfront calculations/fetching/etc to only those values that are shown by default
+            if (i == defaultStep) break;
+            // If neither an associated displayLabel nor prefLabel exists for the current value
+            // it means the property+value combination has not been processed before
+            if (tripleObj.displayLabels?.[i] || tripleObj.prefLabels?.[i] ) {
+                continue; // skip iteration if already processed
+            }
+            // Now we update the property
+            await updateNamedNodeProperty(propURI, i, value)
+        }
+    }
+
+    // For blankNode triples
+    var termType = 'BlankNode';
+    // For each BlankNode property
+    for (const propURI of Object.keys(localItem.triples[termType])) {
+        // Get the content object
+        const tripleObj = localItem.triples[termType][propURI];
+        // Get variables necessary for keyInfoRole and specialBlankNode derivations:
+        const ps = propertyShapes[propURI];
+        const cIRI = ps[SHACL.class.value];
+        tripleObj.classIRI = cIRI;
+        tripleObj.configDisplayLabel = hasConfigDisplayLabel(cIRI, allPrefixes, configVarsMain);
+        const keyPropertyShape = getNodeShapePropertyWithAnnotations(ps[SHACL.class.value], shapesDS, {"dash:propertyRole": "dash:KeyInfoRole"}, allPrefixes)
+        const keyPropertyRole = keyPropertyShape ? keyPropertyShape[SHACL.path.value] : null;
+        initializeHelperArrays(termType, propURI, ['relatedTriples', 'keyPropertyRoles', 'displayLabels', 'prefLabels'])
+        // Now we loop over all values of the current property
+        for (const [i, value] of tripleObj.values.entries()) {
+            // We want to limit upfront calculations/fetching/etc to only those values that are shown by default
+            if (i == defaultStep) break;
+            // If we don't have the related triples of the current blank node value yet, we take it as an
+            // indication that this blank node value has not been processed for the NodeShapeViewer yet,
+            // so we process it all
+            if (tripleObj['relatedTriples']?.[i]) continue; // skip this iteration if processing has already happened
+            // now we update the property
+            await updateBlankNodeProperty(propURI, i, value, keyPropertyRole, keyPropertyShape)
+
+        }
+    }
+    // Last step of updating the item is to prepare the data for rendering special buttons
+    // (could be argued that "updateItem" should only be about updating item data, i.e. in recordItemsAll
+    // and not for setting component refs, which would mean that this step should occur outside of this function)
     // Now let's check for clickable data
     if (componentConfig?.specialButtons && typeof componentConfig?.specialButtons === 'object'
         && Object.keys(componentConfig?.specialButtons).length > 0
     ) {
         for (const sB of Object.keys(componentConfig?.specialButtons)) {
-            let foundSB = findBlankNodeLink(record, componentConfig.specialButtons[sB], allPrefixes)
+            let foundSB = findBlankNodeLink(localItem, componentConfig.specialButtons[sB], allPrefixes)
             if (foundSB) {
                 specialButtons[sB] = {};
                 specialButtons[sB].returnValue = foundSB;
@@ -534,50 +612,81 @@ async function updateRecord(fetchData, from) {
     }
 }
 
-async function addRecordProperty(quad, fetchData) {
-    var termType = quad.object.termType;
-    if (
-        termType === 'NamedNode' &&
-        quad.predicate.value != RDF.type.value &&
-        fetchData
-    ) {
-        const results = await fetchFromService(
-            'get-record',
-            quad.object.value,
-            allPrefixes
+
+async function updateNamedNodeProperty(propURI, i, value) {
+    // Updating a NamedNode property means means we need to possibly fetch the related
+    // named node and derive values for the item from it
+    const termType = 'NamedNode';
+    // if the related node (identified by value = NamedNode pid) is not yet in
+    // recordItemsAll, we need to fetch it:
+    const results = await fetchFromService(
+        'get-record',
+        value,
+        allPrefixes,
+        '',
+        recordItemsAll,
+    );
+    if (results?.status?.includes('success') || (results?.status?.includes("skipped"))) {
+        // Now we first need to be sure that the record is processed after fetching
+        // We can only wait for records that are actually fetched, i.e. the result status includes success
+        const recordFetched = results.url.some(entry =>
+            entry.records?.includes(value)
         );
+        if (recordFetched) {
+            const record = await waitForRecordProcessing(value);
+            await nextTick();
+            // Then we can grab the preflabel and displaylabel
+            let dL = getRecordDisplayLabel(namedNode(value), rdfDS, allPrefixes, configVarsMain)
+            createFillArray(localItem.triples[termType][propURI].displayLabels, i, dL)
+            createFillArray(localItem.triples[termType][propURI].prefLabels, i, record.props._prefLabel)
+        } else {
+            console.log(`Record request sent but no record returned: ${value}`)
+        }
+    } else {
+        // Related record does not exist in the backend, i.e. no labels can be derived
+        createFillArray(localItem.triples[termType][propURI].displayLabels, i, null)
+        createFillArray(localItem.triples[termType][propURI].prefLabels, i, null)
     }
-    if (!record.triples[termType].hasOwnProperty(quad.predicate.value)) {
-        record.triples[termType][quad.predicate.value] = {
-            values: [],
-            displayLabels: [],
-            prefLabels: [],
-            keyPropertyRoles: [],
-            relatedTriples: [],
-        };
-    }
-    let kpr = null
-    if (termType === 'BlankNode') {
-        let ps = propertyShapes[quad.predicate.value]
-        let keyPropertyShape = getNodeShapePropertyWithAnnotations(ps[SHACL.class.value], shapesDS, {"dash:propertyRole": "dash:KeyInfoRole"}, allPrefixes)
-        let keyPropertyRole = keyPropertyShape ? keyPropertyShape[SHACL.path.value] : null
-        let bnRelatedQuads = rdfDS.getSubjectTriples(quad.object);
-        let relatedTriples = quadsToTripleObject(bnRelatedQuads, allPrefixes)
-        record.triples[termType][quad.predicate.value]['relatedTriples'].push(relatedTriples)
-        for (const bnQuad of bnRelatedQuads) {
-            if (bnQuad.object.termType === 'NamedNode') {
-                console.log("Also fetching blank node object record:")
-                console.log(bnQuad.object.value)
-                const results = await fetchFromService(
-                    'get-record',
-                    bnQuad.object.value,
-                    allPrefixes
+}
+
+
+async function updateBlankNodeProperty(propURI, i, value, keyPropertyRole, keyPropertyShape) {
+    const termType = 'BlankNode';
+    // First we fetch related quads, we need it for multiple blank node steps
+    var bnRelatedQuads = rdfDS.getSubjectTriples(blankNode(value));
+    // a) for special buttons, we convert related quads to an object of triples and store it in the item
+    let bnRelatedTriples = quadsToTripleObject(bnRelatedQuads, allPrefixes)
+    createFillArray(localItem.triples[termType][propURI]['relatedTriples'], i, bnRelatedTriples)
+    // b) for specialBlankNode and keyInfoRole rendering tasks, we need to loop through all related quads
+    var kpr = null;
+    for (const bnQuad of bnRelatedQuads) {
+        if (bnQuad.predicate.value === RDF.type.value) continue; // we skip class type statements
+        if (bnQuad.object.termType === 'NamedNode') {
+            let foundRecord
+            const results = await fetchFromService(
+                'get-record',
+                bnQuad.object.value,
+                allPrefixes,
+                '',
+                recordItemsAll,
+            );
+            if (results?.status?.includes("success") || results?.status?.includes("skipped")) {
+                const recordFetched = results.url.some(entry =>
+                    entry.records?.includes(bnQuad.object.value)
                 );
-                console.log(results)
+                if (recordFetched) {
+                    foundRecord = await waitForRecordProcessing(bnQuad.object.value);
+                    await nextTick();
+                } else {
+                    console.log(`Record request sent but no record returned: ${bnQuad.object.value}`)
+                }
             }
+
             if (keyPropertyRole && bnQuad.predicate.value === keyPropertyRole) {
                 let iri = null
-                let subjQ = getSubjectQuad(bnQuad.object, rdfDS.data.graph)
+                // let subjQ = 
+                let subjQ = foundRecord?.props?.quad;
+                // let subjQ = getSubjectQuad(bnQuad.object, rdfDS.data.graph)
                 if (subjQ) {
                     iri = subjQ?.object?.value
                 } else {
@@ -590,24 +699,126 @@ async function addRecordProperty(quad, fetchData) {
             }
         }
     }
+    // We have done the loop and have fetched/gathered the necessary information from related quads
+    // Now we can use that information to set values on the item:
+    // - for keyPropertyRoles
     if (kpr) {
-        record.triples[termType][quad.predicate.value].keyPropertyRoles.push(kpr);
+        createFillArray(localItem.triples[termType][propURI].keyPropertyRoles, i, kpr)
     } else {
-        record.triples[termType][quad.predicate.value].keyPropertyRoles.push(null);
+        createFillArray(localItem.triples[termType][propURI].keyPropertyRoles, i, null)
     }
-    // selectNamedNode(currentClassIRI, currentRecordPID)
-    record.triples[termType][quad.predicate.value].values.push(quad.object);
+    let dL = getRecordDisplayLabel(blankNode(value), rdfDS, allPrefixes, configVarsMain)
+    let pL = getPrefLabel(blankNode(value), rdfDS, allPrefixes)
+    createFillArray(localItem.triples[termType][propURI].displayLabels, i, dL)
+    createFillArray(localItem.triples[termType][propURI].prefLabels, i, pL)
+}
+
+
+function initializeHelperArrays(termType, propURI, arrayKeys = []) {
+    for (const k of arrayKeys) {
+        if (!Array.isArray(localItem.triples[termType][propURI][k])) {
+            localItem.triples[termType][propURI][k] = [];
+        }
+    }
+}
+
+
+async function waitForRecordProcessing(id, timeoutMs = 10000) {
+    // Handle already-processed records
+    const currentStatus = recordItemsAll[id]?.status;
+    if (currentStatus === 'ready') {
+        return recordItemsAll[id];
+    }
+    if (currentStatus === 'error') {
+        throw new Error(`Record ${id} failed processing`);
+    }
+    return new Promise((resolve, reject) => {
+
+        const stop = watch(() => recordItemsAll[id]?.status, (status) => {
+            if (status === 'ready') {
+                clearTimeout(timer);
+                stop();
+                resolve(recordItemsAll[id]);
+            }
+
+            if (status === 'error') {
+                clearTimeout(timer);
+                stop();
+                reject(new Error(`Record ${id} failed processing`));
+            }
+        });
+
+        // Safety timeout
+        const timer = setTimeout(() => {
+            stop();
+            reject(new Error(`Timeout waiting for record ${id}`));
+        }, timeoutMs);
+    });
+}
+
+
+function createFillArray(arr, i, value) {
+    // we want to set: arr[i] = value, but if the array size is not correct this will fail
+    // so we need to fill all possible elements in between with null values, including at i
+    for (var idx = arr.length; idx <= i; idx++ ) {
+        arr.push(null)
+    }
+    // finally, set element i value
+    arr[i] = value;
+}
+
+
+async function showMoreRecords(termType, property, oldCount) {
+    if (!['NamedNode', 'BlankNode', 'BlankNodeSpecial'].includes(termType)) return;
+    const tt = termType == 'BlankNodeSpecial' ? 'BlankNode' : termType;
+    let tripleObj = localItem.triples[tt][property];
+    for (var idx = oldCount; idx < oldCount + defaultStep; idx++) {
+        if (idx == tripleObj.values.length) break; // we have reached the end
+        var value = tripleObj.values[idx];
+        // If neither an associated displayLabel nor prefLabel exists for the current value
+        // it means the property+value combination has not been processed before
+        if (termType === 'NamedNode') {
+            // if (tripleObj.displayLabels?.[idx] || tripleObj.prefLabels?.[idx] ) {
+            //     continue; // skip iteration if already processed
+            // }
+            // Now we update the property
+            await updateNamedNodeProperty(property, idx, value)
+        } else {
+            // Get variables necessary for keyInfoRole and specialBlankNode derivations:
+            const ps = propertyShapes[property];
+            const keyPropertyShape = getNodeShapePropertyWithAnnotations(ps[SHACL.class.value], shapesDS, {"dash:propertyRole": "dash:KeyInfoRole"}, allPrefixes)
+            const keyPropertyRole = keyPropertyShape ? keyPropertyShape[SHACL.path.value] : null;
+            // If we don't have the related triples of the current blank node value yet, we take it as an
+            // indication that this blank node value has not been processed for the NodeShapeViewer yet,
+            // so we process it all
+            // if (tripleObj['relatedTriples']?.[idx]) continue; // skip this iteration if processing has already happened
+            // now we update the property
+            await updateBlankNodeProperty(property, idx, value, keyPropertyRole, keyPropertyShape)
+        }
+    }
 }
 
 // trigger record update whenever lastSavedNode is updated, i.e. whenever a form is saved
 watch(
     lastSavedNode, async (savedNode) => {
         if (savedNode) {
-            if (savedNode.node_iri == record.value) {
-                await updateRecord(false, 'lastSavedNode')
+            if (savedNode.node_iri == localItem.value) {
+                console.log(`UPDATING BLAAAAAAAAAAAA BECAUSE form SAVE happened`)
+                await waitForRecordProcessing(localItem.value)
+                await updateItem(true);
+                await nextTick();
                 initShowCounts();
+                console.log(toRaw(recordItemsAll[localItem.value]))
             }
         }
+    }
+)
+
+// trigger record update whenever lastSavedNode is updated, i.e. whenever a form is saved
+watch(
+    props.triples, (trips) => {
+        console.log(`TRIPLES CHANGED`)
+        console.log(trips['NamedNode'])
     }
 )
 
@@ -633,6 +844,61 @@ async function copyTextToClipboard(text) {
         console.error('Clipboard copy failed:', err);
     }
 }
+
+const specialBlankNodes = computed( () => {
+    const triples = localItem.triples?.['BlankNode'] ?? {};
+    const result = {};
+    for (const [key, v] of Object.entries(triples)) {
+        if (!v.configDisplayLabel || !Array.isArray(v.values)) continue
+        const merged = v.values.map((value, i) => ({
+            value,
+            index: i,
+            displayLabel: v.displayLabels?.[i] ?? '',
+            keyPropertyRole: v.keyPropertyRoles?.[i] ?? null,
+        }))
+        result[key] = {
+            ...v,
+            items: merged,
+            sortedVisibleItems(count) {
+                return [...merged]
+                    .slice(0, count)
+                    .sort((a, b) => {
+                        const aIsHttp = a.displayLabel.trim().toLowerCase().startsWith('http')
+                        const bIsHttp = b.displayLabel.trim().toLowerCase().startsWith('http')
+                        if (aIsHttp && !bIsHttp) return 1
+                        if (!aIsHttp && bIsHttp) return -1
+                        return a.displayLabel.localeCompare(
+                            b.displayLabel,
+                            undefined,
+                            { sensitivity: 'base' }
+                        )
+                    })
+            }
+        }
+    }
+    return result
+})
+
+async function viewRDF() {
+    ttlDialog.value = false;
+    ttlDialog_icon.value = getClassIcon(props.classIRI);
+    ttlDialog_name.value = localItem.props._prefLabel ? localItem.props._prefLabel : ( localItem.props._displayLabel ? localItem.props._displayLabel : localItem.title)
+    ttlDialog_type.value = toCURIE(localItem.props.subtitle, allPrefixes);
+    var rQs = getRecordQuads(localItem.value, rdfDS.data.graph, true)
+    var tmpStr = await quadsToTTL(rQs, allPrefixes);
+    ttlDialog_content.value = tmpStr.replace(/^\s+/g, '');
+    ttlDialog_content.value = '\n' + ttlDialog_content.value;
+    ttlDialog.value = true;
+}
+
+function downloadTTL() {
+    dlTTL(ttlDialog_content.value, toSnakeCase(ttlDialog_name.value) + '.ttl');
+}
+
+function showHideBlankNodes() {
+    showBlankNodes.value = !showBlankNodes.value;
+}
+
 </script>
 
 <style scoped>

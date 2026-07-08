@@ -20,7 +20,7 @@ export function useData(config) {
     const submittedNodes = ref([]);
     const nodesToSubmit = ref([]);
 
-    async function fetchFromService(endpoint, arg, prefixes, matchText = '') {
+    async function fetchFromService(endpoint, arg, prefixes, matchText = '', recordItemsAll = null) {
         // endpoint: the name of the endpoint defined in the config
         // - e.g.: 'get-paginated-records'
         // arg: the URI of the parameter to be formatted and made part of the query string
@@ -106,16 +106,23 @@ export function useData(config) {
                     }
                 }
                 const getURL = `${baseUrl}${query_string}`;
-                if (fetchedRequests.has(getURL)) {
-                    console.log(
-                        `Skipping request: Data previously fetched from ${getURL}`
-                    );
+                if (recordItemsAll?.[arg]) {
+                    // console.log(`Skipping request; Data already exists in recordItemsAll for endpoint: ${getURL}`);
                     // Add result to array, then continue to next baseUrl
-                    results.push({
+                    let rr = {
                         success: true,
                         skipped: true,
                         url: getURL,
-                    });
+                    }
+                    // The following is necessary for useRecords, and in turn, NodeShapeViewer.
+                    // If a fetch returns a skipped result for a single record, we still need
+                    // need to return the 'records' field (which is returned here in other cases
+                    // when a fetch is successful) because the NodeShapeViewer expects to find the
+                    // relevant record pid in the array in that field.
+                    if (endpoint == 'get-record') {
+                        rr.records = [arg];
+                    }
+                    results.push(rr);
                     results_status.push('skipped');
                     continue;
                 }
@@ -143,7 +150,8 @@ export function useData(config) {
                         url: getURL,
                         success: true,
                         skipped: false,
-                        pageMeta: result.pageMeta ? result.pageMeta : {}
+                        pageMeta: result.pageMeta ? result.pageMeta : {},
+                        records: result.records,
                     });
                     allFailed = false;
                     results_status.push('success');
@@ -273,7 +281,7 @@ export function useData(config) {
                 const text = await response.text();
                 let ttlData = await rdfDS.parseTTLandDedup(text);
                 rdfDS.emitAddedRecords(ttlData.records)
-                return { success: true, url: getURL };
+                return { success: true, url: getURL, records: ttlData.records};
             }
             // Other response types both expect json first
             const json = await response.json();
@@ -285,7 +293,7 @@ export function useData(config) {
                     jsonRecords = jsonRecords.concat(jsonData.records)
                 }
                 rdfDS.emitAddedRecords(jsonRecords)
-                return { success: true, url: getURL };
+                return { success: true, url: getURL, records: jsonRecords};
             }
             // Paginated response
             if (expect === 'paged') {
@@ -301,7 +309,7 @@ export function useData(config) {
                     pagedRecords = pagedRecords.concat(pagedData.records)
                 }
                 rdfDS.emitAddedRecords(pagedRecords)
-                return { success: true, url: getURL, pageMeta: metadata };
+                return { success: true, url: getURL, pageMeta: metadata, records: pagedRecords };
             }
             throw new Error(`Unsupported fetch type: ${expect}`);
         } catch (error) {
