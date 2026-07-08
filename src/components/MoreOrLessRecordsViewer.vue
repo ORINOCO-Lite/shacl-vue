@@ -39,18 +39,21 @@
 </template>
 
 <script setup>
+import { toRaw } from 'vue';
+
 const props = defineProps({
     records: Array,
     count: Number,
     stepSize: Number,
-
 });
 
-const emit = defineEmits(['update:count']);
+const emit = defineEmits(['update:count', 'moreButtonPressed']);
 
 function increase() {
+    const oldCount = toRaw(props.count);
     const newTempCount = props.count + props.stepSize
     const newCount = newTempCount > props.records.length ? props.records.length : newTempCount
+    emit('moreButtonPressed', oldCount);
     emit('update:count', newCount);
 }
 

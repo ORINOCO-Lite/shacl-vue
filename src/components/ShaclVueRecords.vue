@@ -84,6 +84,7 @@
                             <NodeShapeViewer
                                 :classIRI="item.props.quad ? item.props.quad.object.value : props.selectedIRI"
                                 :quad="item.props.quad"
+                                :item="item.value"
                                 :key="props.selectedIRI + '-' + item.title"
                                 :formOpen="formOpen"
                                 :variant="'tonal'"
@@ -139,6 +140,7 @@ const searchText = defineModel('searchText')
 const textMatchType = defineModel('textMatchType')
 const orderTopDown = defineModel('orderTopDown')
 
+const formOpen = inject('formOpen');
 const openForms = inject('openForms')
 const configVarsMain = inject('configVarsMain')
 const itemRefs = ref([]);

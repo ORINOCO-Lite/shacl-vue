@@ -9,7 +9,7 @@ It contains all functionality related to the display and interactions of
 records on the main page.
 */
 
-import { ref, computed, watch, watchEffect, onMounted, nextTick, reactive} from 'vue';
+import { ref, computed, watch, watchEffect, onMounted, nextTick, reactive, toRaw} from 'vue';
 import { debounce } from 'lodash-es';
 import { RDF, SKOS } from '@/modules/namespaces';
 import {
@@ -17,6 +17,7 @@ import {
     hasConfigDisplayLabel,
     toCURIE,
     getPidQuad,
+    quadsToTripleObject,
 } from '@/modules/utils';
 import { DataFactory } from 'n3';
 const { namedNode } = DataFactory;
@@ -51,18 +52,6 @@ export function useRecords(
     let debounceTypingTimer = null;
     const itemQueue = new Set();
     let isProcessingItemQueue = false;
-    // We needed to decide between 1 and 2:
-    // 1: shallowRef({}), with shallow copy every time a new item is added
-    // records.value = {
-    //     ...records.value,
-    //     [pid]: item
-    // };
-    // The shallow copy is necessary in order to trigger reactivity because a (shallow?) ref does not
-    // track deeper reactivity.
-    // 2: reactive({})
-    // After consideration: using ref([]) and shallowRef([]) means every time a record is added we first
-    // need to check if it exists in the array already, which is another step that adds to the cost.
-    // i.e. => use reactive.
     const recordItemsAll = reactive({});
     const recordItemsByClass = reactive({});
 
@@ -331,76 +320,24 @@ export function useRecords(
 
     function updateRecordItem(record) {
         // This function does not care if a record item already exists in the 
-        // object; it builds the item and adds it nevertheless.
+        // recordItemsAll reactive object; it builds the item and adds it nevertheless.
         // First we get the record's quad
         let mainQuad = getPidQuad(record, rdfDS.data.graph);
+        let recordClass = mainQuad.object.value;
         if (!mainQuad) {
             console.log(`No PID quad found in graph for record: ${record}; skipping update of this item`)
             return
         }
-        let recordClass = mainQuad.object.value;
-        // Now get related quads
-        var relatedTrips = rdfDS.getSubjectTriples(mainQuad.subject);
-        // Initialize item
-        var item = {
-            title: record,
-            value: record,
-            props: {
-                subtitle: recordClass,
-                quad: mainQuad,
-                itemValue: record,
-            },                
-        };
-        let labelTemplate = hasConfigDisplayLabel(recordClass, allPrefixes, configVarsMain)
-        let labelParts = {}
-        relatedTrips.forEach((quad) => {
-            if (!Object.hasOwn(item.props, quad.predicate.value)) {
-                item.props[quad.predicate.value] = [];
-            }
-            if (quad.object.termType === 'BlankNode') {
-                var bnItem = {};
-                var blankNodeTrips = rdfDS.getSubjectTriples(quad.object);
-                blankNodeTrips.forEach((bnquad) => {
-                    bnItem[bnquad.predicate.value] = bnquad.object.value;
-                });
-                item.props[quad.predicate.value].push(bnItem);
-            } else {
-                item.props[quad.predicate.value].push(quad.object.value);
-            }
-            let predCuri = toCURIE(quad.predicate.value, allPrefixes)
-            // If current predicate is used for display label generation, store it
-            if ( labelTemplate && labelTemplate.includes(predCuri)) {
-                if (!labelParts[predCuri]) {
-                    labelParts[predCuri] = []
-                }
-                labelParts[predCuri].push(quad.object.value)
-            }
-        });
+        var item = constructItem(record, mainQuad, true)
+        // Grab prefLabel (and set displayLabel) if possible
         item.props._prefLabel = '';
+        item.props._displayLabel = '';
         if (item.props.hasOwnProperty(SKOS.prefLabel.value)) {
             item.props._prefLabel = item.props[SKOS.prefLabel.value][0];
+            item.props._displayLabel = item.props._prefLabel;
+            item._displayLabel.status = 'prefLabel';
         }
-        // Generate display label if possible
-        item.props._displayLabel = '';
-        if (labelTemplate) {
-            let displayLabel = getConfigDisplayLabel(labelTemplate, labelParts, configVarsMain, rdfDS, allPrefixes)
-            if (displayLabel) {
-                item.props._displayLabel = displayLabel;
-            }
-        }
-        // Now put together single searchable blob
-        item.props._searchBlob = ''
-        for (const field of searchableFields) {
-            if (!(field in item.props)) continue;
-            let value = item.props[field]?.toString().toLowerCase().trim();
-            if (!Array.isArray(value)) {
-                value = [value]
-            }
-            for (const v of value) {
-                item.props._searchBlob = item.props._searchBlob + v
-            }
-        }
-        // Now that we have the complete item, we can add it to the tracking objects
+        // Now that we have the almost complete item, we can add it to the tracking objects:
         // Class records tracker
         if (!recordItemsByClass.hasOwnProperty(recordClass)) {
             recordItemsByClass[recordClass] = {};
@@ -408,6 +345,196 @@ export function useRecords(
         recordItemsByClass[recordClass][record] = item;
         // All records tracker
         recordItemsAll[record] = item;
+        // Now calculate+set display label
+        if (!recordItemsAll[record].props._displayLabel && recordItemsAll[record]._displayLabel.template) {
+            setDisplayLabel(record)
+        }
+        // Now put together single searchable blob
+        setSearchBlob(record)
+        // Finally set status to ready, for watchers to catch
+        recordItemsAll[record].status = 'ready';
+    }
+
+    function setDisplayLabel(pid) {
+        let displayLabelCalc = getItemDisplayLabel(pid, configVarsMain, rdfDS, allPrefixes)
+        recordItemsAll[pid].props._displayLabel = displayLabelCalc.value;
+        recordItemsAll[pid]._displayLabel.status = displayLabelCalc.status;
+    }
+
+    function setSearchBlob(pid) {
+        recordItemsAll[pid].props._searchBlob = ''
+        for (const field of searchableFields) {
+            if (!(field in recordItemsAll[pid].props)) continue;
+            let value = recordItemsAll[pid].props[field]?.toString().toLowerCase().trim();
+            if (!Array.isArray(value)) {
+                value = [value]
+            }
+            for (const v of value) {
+                recordItemsAll[pid].props._searchBlob = recordItemsAll[pid].props._searchBlob + v
+            }
+        }
+    }
+
+    function constructItem(pid, mainQuad=null, setDisplayDetails=false) {
+        if (!mainQuad) {
+            mainQuad = getPidQuad(pid, rdfDS.data.graph);
+        }
+        let recordClass = mainQuad.object.value;
+        var relatedTrips = rdfDS.getSubjectTriples(mainQuad.subject);
+        var item = getBasicItem(pid, recordClass, mainQuad)
+        if (setDisplayDetails) {
+            item._displayLabel.template = hasConfigDisplayLabel(recordClass, allPrefixes, configVarsMain)
+        }
+        relatedTrips.forEach((quad) => {
+            processItemQuad(quad, item, setDisplayDetails)
+        })
+        return item;
+    }
+
+    function getBasicItem(pid, cls, q) {
+        return {
+            title: pid,
+            value: pid,
+            props: {
+                subtitle: cls,
+                quad: q,
+                itemValue: pid,
+            },   
+            triples: {
+                Literal: {},
+                BlankNode: {},
+                NamedNode: {},
+            },
+            _displayLabel: {
+                template: '',
+                status: 'not calculated',
+                parts: {}
+            },
+        };
+    }
+
+    function processItemQuad(quad, item, setDisplayDetails=false) {
+        var termType = quad.object.termType;
+        let predicate = quad.predicate.value;
+        // For useRecords: Initialize property with empty array (array, because property might have multiple values)
+        if (!Object.hasOwn(item.props, predicate)) {
+            item.props[predicate] = [];
+        }
+        if (!item.triples[termType].hasOwnProperty(predicate)) {
+            item.triples[termType][predicate] = {
+                values: [],
+            };
+        }
+        // for ... ?
+        item.props[predicate].push(quad.object.value);
+        // for NodeShapeViewer
+        item.triples[termType][predicate].values.push(quad.object.value);
+        // If current predicate is used for display label generation, store it
+        if (setDisplayDetails) {
+            let predCuri = toCURIE(predicate, allPrefixes)
+            if (item._displayLabel.template && item._displayLabel.template.includes(predCuri)) {
+                if (!item._displayLabel.parts[predCuri]) {
+                    item._displayLabel.parts[predCuri] = {};
+                }
+                item._displayLabel.parts[predCuri].value = quad.object.value;
+                item._displayLabel.parts[predCuri].termType = quad.object.termType;
+            }
+        }
+    }
+
+
+    function getItemDisplayLabel(pid, configVarsMain, rdfDS, allPrefixes, force=false) {
+        let record = recordItemsAll[pid];
+        if (!record) {
+            return {
+                value: null,
+                status: 'no record'
+            }
+        }
+        // prefLabel has nr 1 priority:
+        // if the record has a preflabel, return that
+        if (record.props._prefLabel) {
+            return {
+                value: record.props._prefLabel,
+                status: 'prefLabel'
+            }
+        }
+        // Fallback to configured display label template
+        // If not calculate it, make an attempt
+        if (record._displayLabel?.status == 'ready' && !force) {
+            return {
+                value: record.props._displayLabel,
+                status: 'ready',
+            }
+        }
+        if (['not calculated', 'incomplete'].includes(record._displayLabel?.status) || force) {
+            return getConfiguredDisplayLabel(record, configVarsMain, rdfDS, allPrefixes)
+        }
+
+        return {
+            value: pid,
+            status: 'pid'
+        }
+    }
+
+    function getConfiguredDisplayLabel(item, configVarsMain, rdfDS, allPrefixes) {
+        const regex = /{([^}]+)}/g;
+        const defaultPlaceholder = 
+            "default" in configVarsMain.displayNameAutogeneratePlaceholder ? 
+            configVarsMain.displayNameAutogeneratePlaceholder.default : "[?]";
+        
+        let idIRIcurie = toCURIE(configVarsMain.idIri, allPrefixes)
+
+        if (!item._displayLabel.template) {
+            let recordClass = item.props.quad.object.value;
+            item._displayLabel.template = hasConfigDisplayLabel(recordClass, allPrefixes, configVarsMain)
+        }
+
+        if(!item._displayLabel.parts) {
+            // register all parts
+            // we currently assume these have been registered
+        }
+
+        let status = 'ready'
+        const value = item._displayLabel.template.replace(regex, (_, key) => {
+            let missingPlaceholder =
+                key in configVarsMain.displayNameAutogeneratePlaceholder ? 
+                configVarsMain.displayNameAutogeneratePlaceholder[key] : defaultPlaceholder
+            if (!(key in item._displayLabel.parts)) {
+                return missingPlaceholder;
+            }
+
+            let objectVal = item._displayLabel.parts[key];
+            if (!Array.isArray(objectVal.value)) {
+                objectVal.value = [objectVal.value];
+            }
+            // If the key is the PID IRI, we shouldn't resolve because that is
+            // unnecessary and that leads to recursion
+            if (key == idIRIcurie) {
+                return objectVal.value[0];
+            }
+
+            if (objectVal.termType === 'Literal') {
+                return objectVal.value.join(', ')
+            }
+
+            if (objectVal.termType === 'NamedNode') {
+                const resolved = objectVal.value.map(val => {
+                    const result = getItemDisplayLabel(val, configVarsMain, rdfDS, allPrefixes)
+                    if (!['ready', 'prefLabel'].includes(result.status)) {
+                        status = 'incomplete'
+                    }
+                    return result.value
+                })
+                return resolved.join(', ')
+            }
+
+            return missingPlaceholder
+        });
+        return {
+            value,
+            status
+        }
     }
 
     // ------- //
@@ -432,6 +559,8 @@ export function useRecords(
         textMatchType,
         totalItemCount,
         recordItemsByClass,
+        recordItemsAll,
+        constructItem,
         filteredRecordItemsAll,
         filteredRecordItemsByClass,
         filteredRecordItemsForClassWithSubclassItems,

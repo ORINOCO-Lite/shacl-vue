@@ -389,6 +389,8 @@ const {
     totalItemCount,
     recordItemsByClass,
     filteredRecordItemsAll,
+    recordItemsAll,
+    constructItem,
     filteredRecordItemsByClass,
     filteredRecordItemsForClassWithSubclassItems,
 } = useRecords(
@@ -493,6 +495,8 @@ provide('getClassIcon', getClassIcon);
 provide('submitFn', submitFn);
 provide('tokenWarning', tokenWarning);
 provide('submitWarning', submitWarning);
+provide('recordItemsAll', recordItemsAll);
+provide('constructItem', constructItem);
 
 // --------------------- //
 // Lifecycle/Vue methods //
