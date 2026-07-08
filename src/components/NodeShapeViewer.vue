@@ -49,6 +49,22 @@
                         ></v-btn>
                     </template>
                 </v-tooltip>
+                <span v-if="!hideBackLinks">
+                    &nbsp;
+                    <v-tooltip text="View record links" location="bottom">
+                        <template v-slot:activator="{ props }">
+                            <v-btn
+                                icon="mdi-database-eye-outline"
+                                variant="tonal"
+                                size="x-small"
+                                class="rounded-lg"
+                                @click="backLinksDialog = true"
+                                :disabled="props.formOpen"
+                                v-bind="props"
+                            ></v-btn>
+                        </template>
+                    </v-tooltip>
+                </span>
                 <span v-if="showCopyLink">
                     &nbsp;
                     <v-tooltip text="Copy link" location="bottom">
@@ -100,7 +116,6 @@
                             <span v-else>
                                 <strong>{{ k }}</strong>:
                             </span>
-                            <!-- <span>{{v.values}} | {{ showCounts['Literal'][k] }}</span> -->
                             <span v-for="(el, i) in v.values">
                                 <span v-if="i < showCounts['Literal'][k]">
                                     <span v-if="v.values.length > 1"><br/>&nbsp;-</span>
@@ -206,15 +221,8 @@
                         </span>
                     </span>
                 </v-col>
-                <v-col v-if="showBackLinks && !hideBackLinks" cols="auto" class="d-flex">
-                    <v-divider vertical />
-                </v-col>
-                <v-col>
-                    <BackLinkViewer v-if="firstUpdateDone && !hideBackLinks" v-show="showBackLinks" :record="item" @has-referencing-records="showBackLinks = true"></BackLinkViewer>
-                </v-col>
             </v-row>
             <!-- Blank nodes -->
-            <span v-if="showBackLinks && !hideBackLinks"><br /></span>
             <v-btn
                 no-gutters
                 v-if="Object.keys(localItem.triples['BlankNode']).length > 0"
@@ -293,6 +301,18 @@
                 >
             </v-card-actions>
         </v-card>
+    </v-dialog>
+    <v-dialog
+        v-model="backLinksDialog"
+        :max-width="mobile ? '90%' : '60%'"
+        @click:outside="backLinksDialog = false"
+    >
+        <v-card>
+            <v-card-text>
+                <BackLinkViewer :record="localItem" @has-referencing-records="showBackLinks = true"></BackLinkViewer>
+            </v-card-text>
+        </v-card>
+        
     </v-dialog>
 </template>
 
@@ -390,14 +410,14 @@ const ttlDialog_icon = ref('');
 const ttlDialog_name = ref('');
 const ttlDialog_type = ref('');
 const ttlDialog_content = ref('');
+const backLinksDialog = ref(false);
 const fetchingRecords = ref(false);
 const canEditClass = ref(false);
 const showSpecialButtons = ref(false);
 const specialButtons = reactive({});
 const showBackLinks = ref(false);
 const firstUpdateDone = ref(false);
-// const hideBackLinksConfig = componentConfig?.hideBackLinks;
-const hideBackLinksConfig = true;
+const hideBackLinksConfig = componentConfig?.hideBackLinks;
 const hideBackLinks = ref(true);
 if (hideBackLinksConfig === false || Array.isArray(hideBackLinksConfig) &&
     !hideBackLinksConfig.includes(toCURIE(props.classIRI, allPrefixes))) {
