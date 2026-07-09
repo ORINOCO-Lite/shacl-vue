@@ -17,11 +17,23 @@ const commitHashShort = execSync('git rev-parse --short HEAD')
     .toString()
     .trim();
 const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
+const commitDate = execSync('git show -s --format=%cI HEAD').toString().trim().replace(/[+-][0-9]{2}:[0-9]{2}$/, '');
 
 // Output directory of build process
 const outDir = process.env.VITE_OUT_DIR || 'dist/app';
 const variant = process.env.VITE_SHACLVUE_VARIANT || 'default';
 console.log(`Building shacl-vue application variant: '${variant}'`)
+
+// Build process inputs
+const buildGitCommit = process.env.BUILD_GIT_COMMIT ?? null;
+const buildGitCommitShort = process.env.BUILD_GIT_COMMIT_SHORT ?? null;
+const buildGitBranch = process.env.BUILD_GIT_BRANCH ?? null;
+let buildGitDate = process.env.BUILD_GIT_DATE ?? null;
+if (buildGitDate) buildGitDate = buildGitDate.replace(/[+-][0-9]{2}:[0-9]{2}$/, '');
+
+// Build date
+let buildDate = new Date().toISOString();
+buildDate = buildDate.substring(0, buildDate.length - 5);
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -61,9 +73,17 @@ export default defineConfig({
     ],
     define: {
         'process.env': {},
-        __COMMIT_HASH__: JSON.stringify(commitHash),
-        __COMMIT_HASH_SHORT__: JSON.stringify(commitHashShort),
-        __BRANCH__: JSON.stringify(branch),
+        __SV_COMMIT_HASH__: JSON.stringify(commitHash),
+        __SV_COMMIT_HASH_SHORT__: JSON.stringify(commitHashShort),
+        __SV_BRANCH__: JSON.stringify(branch),
+        __SV_COMMIT_DATE__: JSON.stringify(commitDate),
+
+        __BUILD_COMMIT_HASH__: buildGitCommit ? JSON.stringify(buildGitCommit) : null,
+        __BUILD_COMMIT_HASH_SHORT__: buildGitCommitShort ? JSON.stringify(buildGitCommitShort) : null,
+        __BUILD_BRANCH__: buildGitBranch ? JSON.stringify(buildGitBranch) : null,
+        __BUILD_COMMIT_DATE__: buildGitDate ? JSON.stringify(buildGitDate) : null,
+
+        __BUILD_DATE__: JSON.stringify(buildDate),
     },
     resolve: {
         alias: {

@@ -184,11 +184,24 @@
                                 </span>
                                 <span v-if="configVarsMain.sourceCodeUrl">
                                     <h3 style="margin-top: 1em;">Source code repository</h3>
-                                    <a target="_blank" :href="configVarsMain.sourceCodeUrl">{{configVarsMain.sourceCodeUrl}}</a>
+                                    <span v-if="date_build">
+                                        <ul style="margin-left: 1em;">
+                                            <li><em>url:</em> <a target="_blank" :href="configVarsMain.sourceCodeUrl">{{configVarsMain.sourceCodeUrl}}</a></li>
+                                            <li><em>version:</em> <a target="_blank" :href="configVarsMain.sourceCodeUrl + '/src/commit/' + commit_build">v{{ date_build }} ({{branch_build + '@' + commit_short_build }})</a></li>
+                                        </ul>
+                                    </span>
+                                    <span v-else>
+                                        <a target="_blank" :href="configVarsMain.sourceCodeUrl">{{configVarsMain.sourceCodeUrl}}</a>
+                                    </span>
                                 </span>
                                 <span>
-                                    <h3 style="margin-top: 1em;"><em>shacl-vue</em> version</h3>
-                                    <a target="_blank" :href="link">{{branch + '@' + commit_short}}</a>
+                                    <h3 style="margin-top: 1em;"><em>shacl-vue</em></h3>
+                                    <ul style="margin-left: 1em;">
+                                        
+                                        <li><em>version:</em> <a target="_blank" :href="link">v{{ date }} ({{branch + '@' + commit_short }})</a></li>
+                                        <li><em>build date:</em> {{ build_date }}</li>
+                                    </ul>
+                                    
                                 </span>
                             </v-card-text>
                         </v-card>
@@ -321,10 +334,16 @@ import { useDisplay } from 'vuetify'
 import { useAppTheme } from '@/composables/useAppTheme'
 const { isDark, toggleTheme } = useAppTheme()
 const { mobile } = useDisplay()
-const branch = __BRANCH__;
-const commit_short = __COMMIT_HASH_SHORT__;
-const commit = __COMMIT_HASH__;
-const link = `https://hub.psychoinformatics.de/datalink/shacl-vue/src/commit/${commit}`;
+const branch = __SV_BRANCH__;
+const commit = __SV_COMMIT_HASH__;
+const commit_short = __SV_COMMIT_HASH_SHORT__;
+const date = __SV_COMMIT_DATE__;
+const branch_build = __BUILD_BRANCH__;
+const commit_build = __BUILD_COMMIT_HASH__;
+const commit_short_build = __BUILD_COMMIT_HASH_SHORT__;
+const date_build = __BUILD_COMMIT_DATE__;
+const build_date = __BUILD_DATE__;
+const link = `https://hub.psychoinformatics.de/orinoco/shacl-vue/src/commit/${commit}`;
 
 const props = defineProps({
     logo: String,
