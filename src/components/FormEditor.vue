@@ -371,7 +371,9 @@ async function saveForm() {
             ) {
                 nodesToSubmit.value.push(saved_node);
                 // we also need to add/update the record to the global list
-                recordItemsAll[saved_node.node_iri].status = null;
+                if (recordItemsAll[saved_node.node_iri]) {
+                    recordItemsAll[saved_node.node_iri].status = null;
+                }
                 rdfDS.emitAddedRecords([saved_node.node_iri])
             }
             removeForm(saved_node);
