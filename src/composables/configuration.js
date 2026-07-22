@@ -274,7 +274,7 @@ export function useConfig(url) {
         try {
             const response = await fetch(url, { cache: 'no-cache' });
             if (!response.ok) {
-                console.error(`Error fetching content: ${response.statusText}`)
+                console.error(`Error fetching content at ${url}: ${response.statusText}`)
                 return null
             }
             if (format == 'text') {
