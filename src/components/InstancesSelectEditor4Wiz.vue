@@ -703,7 +703,7 @@ watch(
     lastSavedNode,
     async (savedNode) => {
         if (savedNode) {
-            if (!openForms.at(-1).activatedInstancesSelectEditor) {
+            if (!openForms || !openForms.at(-1) || !openForms.at(-1).activatedInstancesSelectEditor) {
                 return;
             }
             // First check if the current component is also the activatedInstancesSelectEditor
