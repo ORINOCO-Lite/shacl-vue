@@ -241,7 +241,7 @@ onBeforeMount(() => {
             typeof config.value.show_all_fields == 'boolean' &&
             config.value.show_all_fields
         ) {
-            show_all_fields = true;
+            show_all_fields.value = true;
         }
     }
     fieldNotes.value = getNotes(shape_obj);
