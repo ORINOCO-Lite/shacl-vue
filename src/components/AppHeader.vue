@@ -83,6 +83,31 @@
                     ></v-btn>
                 </template>
             </v-tooltip>
+            <span v-if="configVarsMain.oidc?.length > 0 ">
+                <v-menu>
+                    <template v-slot:activator="{ props: menu }">
+                        <v-tooltip location="top">
+                            <template v-slot:activator="{ props: tooltip }">
+                                <v-btn
+                                    :icon="userIcon"
+                                    v-bind="mergeProps(menu, tooltip)"
+                                ></v-btn>
+                            </template>
+                            <span>Login</span>
+                        </v-tooltip>
+                    </template>
+                    <v-list>
+                        <v-list-item
+                            v-for="(item, index) in configVarsMain.oidc"
+                            :key="index"
+                            :value="index"
+                            @click="loginToOidcServer(toRaw(item))"
+                        >
+                            <v-list-item-title>Login with {{ item.name }}</v-list-item-title>
+                        </v-list-item>
+                    </v-list>
+                </v-menu>
+            </span>
         </template>
     </v-app-bar>
 
@@ -328,10 +353,11 @@
     </v-dialog>
 </template>
 <script setup>
-import { inject, onBeforeMount, ref, watch, computed} from 'vue';
+import { inject, onBeforeMount, ref, watch, computed, mergeProps, toRaw} from 'vue';
 import { useToken } from '@/composables/tokens';
 import { useDisplay } from 'vuetify'
 import { useAppTheme } from '@/composables/useAppTheme'
+import { openOidcAuthUrl } from '@/modules/oidc'
 const { isDark, toggleTheme } = useAppTheme()
 const { mobile } = useDisplay()
 const branch = __SV_BRANCH__;
@@ -384,6 +410,7 @@ const orderIcon = ref('mdi-arrow-down-thick');
 const filterConfigText = ref('');
 const appVariant = import.meta.env.VITE_SHACLVUE_VARIANT;
 const appName = ref('');
+const userIcon = ref('mdi-account');
 
 onBeforeMount(() => {
     if (token.value !== null && token.value !== 'null') {
@@ -455,6 +482,10 @@ function cancel() {
 }
 
 function settingsFn() {
+    if (token.value !== null && token.value !== 'null') {
+        tokenExists.value = true;
+        tokenval.value = token.value;
+    }
     tab.value = 'info';
     settingsDialog.value = true;
 }
@@ -544,6 +575,26 @@ async function save() {
         submitWarning.value = true;
     }
     settingsDialog.value = false;
+}
+
+function loginToOidcServer(config) {
+    const el = (event) => {
+        console.log(event)
+        if (event.origin !== window.location.origin)
+            return;
+        if (event.source === window)
+            return;
+        if (!event.data?.type.includes("oidc-login"))
+            return;
+        // console.log("Received token", event.data.payload.accessToken);
+        setToken(event.data.payload.accessToken)
+        userIcon.value = 'mdi-account-check';
+        tokenExists.value = true;
+        tokenval.value = token.value;
+        window.removeEventListener("message", el);
+    }
+    window.addEventListener("message", el);
+    openOidcAuthUrl(config)
 }
 
 

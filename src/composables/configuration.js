@@ -3,8 +3,8 @@
  * Composable for managing the application configuration
  */
 
-import { isObject, snakeToCamel, getContent, getContentType, toIRI, toCURIE, getIcon} from '@/modules/utils';
-import { ref, onMounted, reactive, watch, toRaw} from 'vue';
+import { isObject, snakeToCamel, getContent, getContentType, toIRI, toCURIE, getIcon } from '@/modules/utils';
+import { ref, onMounted, reactive, watch, toRaw } from 'vue';
 import { mergeWith } from 'lodash-es'
 import { parse as parseYAML } from 'yaml';
 const basePath = import.meta.env.BASE_URL || '/';
@@ -99,6 +99,7 @@ const mainVarsToLoad = {
     wizard_editors: {},
     wizard_editor_selection: {},
     property_groups: {},
+    oidc: [],
 };
 
 
