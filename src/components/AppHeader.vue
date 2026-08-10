@@ -579,14 +579,12 @@ async function save() {
 
 function loginToOidcServer(config) {
     const el = (event) => {
-        console.log(event)
         if (event.origin !== window.location.origin)
             return;
         if (event.source === window)
             return;
         if (!event.data?.type.includes("oidc-login"))
             return;
-        // console.log("Received token", event.data.payload.accessToken);
         setToken(event.data.payload.accessToken)
         userIcon.value = 'mdi-account-check';
         tokenExists.value = true;
