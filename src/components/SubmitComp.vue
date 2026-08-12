@@ -229,7 +229,9 @@ async function submit() {
 }
 
 async function downloadTTL() {
-    let toSubmit = [...nodesToSubmit.value];
+    const toSubmit = nodesToSubmit.value.filter((node) =>
+        selectedNodesToSubmit.value.includes(node.node_iri)
+    );
     const ds = new Store();
     for (const node of toSubmit) {
         var quads = getRecordQuads(node.node_iri, rdfDS.data.graph, true);
