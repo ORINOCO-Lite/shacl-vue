@@ -215,7 +215,7 @@
                             </v-container>
                         </v-main>
                         <!-- Button to open/close submission drawer -->
-                        <span v-if="configVarsMain.useService">
+                        <span v-if="configVarsMain.useService || configVarsMain.reviewBundleMode === 'patch-download'">
                             <v-navigation-drawer
                                 theme="dark"
                                 :color="configVarsMain.appTheme.panel_color"
