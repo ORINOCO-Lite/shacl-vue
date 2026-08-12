@@ -13,6 +13,7 @@ export function useNavigation(
     selectedItem,
     selectType,
     setToken,
+    clearToken,
     shapesDS,
     textMatchType,
 ) {
@@ -33,9 +34,15 @@ export function useNavigation(
         const edit = qparams.get('edit');
         // search is not compatible with pid or edit
         const search_string = qparams.get('search');
-        // set token first, if provided
-        if (token) {
+        if (!configVarsMain.useToken) {
+            clearToken();
+        } else if (token) {
             setToken(token, 'url');
+        }
+        if (token) {
+            const url = new URL(window.location);
+            url.searchParams.delete('token');
+            window.history.replaceState(null, '', url);
         }
         // If only pid provided, we need to derive the nodeshape
         // whenever pid is provided, we ignore search
@@ -45,11 +52,13 @@ export function useNavigation(
             let instanceIRI = toIRI(instance_pid, allPrefixes);
             console.log(`instanceIRI: ${instanceIRI}`)
             if (instanceIRI) {
-                const results = await fetchFromService(
-                    'get-record',
-                    instanceIRI,
-                    allPrefixes
-                );
+                if (configVarsMain.useService) {
+                    await fetchFromService(
+                        'get-record',
+                        instanceIRI,
+                        allPrefixes
+                    );
+                }
                 let pidQ = getPidQuad(instanceIRI, rdfDS.data.graph)
                 let targetClass = null;
                 let instanceObject = null;
@@ -108,11 +117,13 @@ export function useNavigation(
                         instanceIRI = toIRI(instance_pid, allPrefixes);
                         console.log(`instanceIRI: ${instanceIRI}`)
                         if (instanceIRI) {
-                            const results = await fetchFromService(
-                                'get-record',
-                                instanceIRI,
-                                allPrefixes
-                            );
+                            if (configVarsMain.useService) {
+                                await fetchFromService(
+                                    'get-record',
+                                    instanceIRI,
+                                    allPrefixes
+                                );
+                            }
                             textMatchType.value = 'exact';
                             searchText.value = instanceIRI;
                             updateURL(nodeShapeIRI, false, instanceIRI, allPrefixes)

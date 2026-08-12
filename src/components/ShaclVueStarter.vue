@@ -441,6 +441,7 @@ const {
     allPrefixes,
     configVarsMain,
     editInstanceItem,
+    fetchFromService,
     internalHistory,
     rdfDS,
     searchText,
@@ -449,6 +450,7 @@ const {
     setToken,
     shapesDS,
     textMatchType,
+    clearToken,
 )
 // Form submission
 const {

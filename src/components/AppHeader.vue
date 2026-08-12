@@ -174,7 +174,7 @@
                     :class="mobile ? '' : 'settings-tabs'"
                 >
                     <v-tab prepend-icon="mdi-information" text="Info" value="info"></v-tab>
-                    <v-tab prepend-icon="mdi-key" text="Tokens" value="tokens"></v-tab>
+                    <v-tab v-if="configVarsMain.useToken" prepend-icon="mdi-key" text="Tokens" value="tokens"></v-tab>
                     <v-tab prepend-icon="mdi-alphabetical" text="Prefixes" value="prefixes"></v-tab>
                     <v-tab prepend-icon="mdi-wrench" text="Config" value="config"></v-tab>
                 </v-tabs>

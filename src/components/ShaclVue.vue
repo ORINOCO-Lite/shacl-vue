@@ -446,6 +446,7 @@ const {
     selectedItem,
     selectType,
     setToken,
+    clearToken,
     shapesDS,
     textMatchType,
 )

@@ -1,6 +1,6 @@
 // useData.js
 import { ref, reactive, toRaw } from 'vue';
-import { replaceServiceIdentifier, getRecordQuads, findObjectIndexByKey} from '@/modules/utils';
+import { replaceServiceIdentifier, getRecordQuads, getPidQuad, findObjectIndexByKey} from '@/modules/utils';
 import { useToken } from '@/composables/tokens';
 import { ReactiveRdfDataset } from '@/classes/ReactiveRdfDataset';
 import { SHACL } from '@/modules/namespaces'
@@ -21,6 +21,16 @@ export function useData(config) {
     const nodesToSubmit = ref([]);
 
     async function fetchFromService(endpoint, arg, prefixes, matchText = '', recordItemsAll = null) {
+        if (config.value.use_service === false) {
+            const records = endpoint === 'get-record' && getPidQuad(arg, rdfDS.data.graph)
+                ? [arg] : [];
+            return {
+                success: true,
+                skipped: true,
+                status: ['skipped'],
+                url: [{ success: true, skipped: true, records }],
+            };
+        }
         // endpoint: the name of the endpoint defined in the config
         // - e.g.: 'get-paginated-records'
         // arg: the URI of the parameter to be formatted and made part of the query string
@@ -330,6 +340,7 @@ export function useData(config) {
     }
 
     function hasUnfetchedPages(IRI, matchText='') {
+        if (config.value.use_service === false) return false;
         let hasAnyIRI = false;
         let hasAnyMatchText = false;
         for (const serviceURL in fetchedPages) {
