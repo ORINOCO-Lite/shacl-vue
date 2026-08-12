@@ -25,6 +25,7 @@
 import { ref, onBeforeMount, onMounted, inject, toRaw } from 'vue';
 import SVGIcon from '@/components/SVGIcon.vue'
 import { fillStringTemplate, getIcon} from '@/modules/utils';
+import { openExternalHTTPURL } from '@/modules/safe-url';
 
 // --------------- //
 // Component props //
@@ -56,7 +57,7 @@ onBeforeMount(() => {
 // Functions //
 // --------- //
 function openInNewTab(url) {
-    window.open(url, '_blank').focus();
+    openExternalHTTPURL(url);
 }
 
 
