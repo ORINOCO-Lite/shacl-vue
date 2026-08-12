@@ -15,6 +15,7 @@ export function useNavigation(
     setToken,
     shapesDS,
     textMatchType,
+    clearToken,
 ) {
     // --------- //
     // Functions //
@@ -32,8 +33,15 @@ export function useNavigation(
         const token = qparams.get('token');
         const edit = qparams.get('edit');
 
-        if (token) {
+        if (!configVarsMain.useToken) {
+            clearToken();
+        } else if (token) {
             setToken(token);
+        }
+        if (token) {
+            const url = new URL(window.location);
+            url.searchParams.delete('token');
+            window.history.replaceState(null, '', url);
         }
 
         if (nodeShape) {
@@ -57,11 +65,13 @@ export function useNavigation(
                     if (instance_pid) {
                         instanceIRI = toIRI(instance_pid, allPrefixes);
                         if (instanceIRI) {
-                            const results = await fetchFromService(
-                                'get-record',
-                                instanceIRI,
-                                allPrefixes
-                            );
+                            if (configVarsMain.useService) {
+                                await fetchFromService(
+                                    'get-record',
+                                    instanceIRI,
+                                    allPrefixes
+                                );
+                            }
                             // queried_pid.value = instanceIRI;
                             textMatchType.value = 'exact';
                             searchText.value = instanceIRI;
