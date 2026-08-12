@@ -16,7 +16,7 @@ const commitHash = execSync('git rev-parse HEAD').toString().trim();
 const commitHashShort = execSync('git rev-parse --short HEAD')
     .toString()
     .trim();
-const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
+const branch = 'pinned';
 const commitDate = execSync('git show -s --format=%cI HEAD').toString().trim().replace(/[+-][0-9]{2}:[0-9]{2}$/, '');
 
 // Output directory of build process
@@ -32,7 +32,7 @@ let buildGitDate = process.env.BUILD_GIT_DATE ?? null;
 if (buildGitDate) buildGitDate = buildGitDate.replace(/[+-][0-9]{2}:[0-9]{2}$/, '');
 
 // Build date
-let buildDate = new Date().toISOString();
+let buildDate = process.env.BUILD_DATE || new Date().toISOString();
 buildDate = buildDate.substring(0, buildDate.length - 5);
 
 // https://vitejs.dev/config/

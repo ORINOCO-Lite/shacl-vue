@@ -17,8 +17,8 @@
         </v-app-bar-title>
 
         <template v-slot:append>
-            <span v-if="configVarsMain.useService">
-                <v-tooltip text="Submit" location="bottom">
+            <span v-if="configVarsMain.useService || configVarsMain.reviewBundleMode === 'patch-download'">
+                <v-tooltip :text="configVarsMain.reviewBundleMode === 'patch-download' ? 'Download review bundle' : 'Submit'" location="bottom">
                     <template v-slot:activator="{ props }">
                         <v-badge
                             v-if="nodesToSubmit.length > 0 && !formOpen"
@@ -29,7 +29,7 @@
                             offset-y="12"
                         >
                             <v-btn
-                                icon="mdi-cloud-upload"
+                                :icon="configVarsMain.reviewBundleMode === 'patch-download' ? 'mdi-download' : 'mdi-cloud-upload'"
                                 @click="submitFn()"
                                 v-bind="props"
                                 :disabled="!canSubmit"
@@ -39,7 +39,7 @@
                         </v-badge>
                         <v-btn
                             v-else
-                            icon="mdi-cloud-upload"
+                            :icon="configVarsMain.reviewBundleMode === 'patch-download' ? 'mdi-download' : 'mdi-cloud-upload'"
                             @click="submitFn()"
                             v-bind="props"
                             :disabled="!canSubmit"
@@ -148,7 +148,7 @@
                     :class="mobile ? '' : 'settings-tabs'"
                 >
                     <v-tab prepend-icon="mdi-information" text="Info" value="info"></v-tab>
-                    <v-tab prepend-icon="mdi-key" text="Tokens" value="tokens"></v-tab>
+                    <v-tab v-if="configVarsMain.useToken" prepend-icon="mdi-key" text="Tokens" value="tokens"></v-tab>
                     <v-tab prepend-icon="mdi-alphabetical" text="Prefixes" value="prefixes"></v-tab>
                     <v-tab prepend-icon="mdi-wrench" text="Config" value="config"></v-tab>
                 </v-tabs>
@@ -511,7 +511,10 @@ watch(
     submitWarning,
     (newValue) => {
         if (newValue) {
-            if (token.value !== null && token.value !== 'null') {
+            if (
+                configVarsMain.reviewBundleMode === 'patch-download' ||
+                (token.value !== null && token.value !== 'null')
+            ) {
                 submitWarningPulse.value = true
                 setTimeout(() => {
                     submitWarningPulse.value = false

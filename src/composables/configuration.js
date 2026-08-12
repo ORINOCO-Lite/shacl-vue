@@ -85,6 +85,8 @@ const mainVarsToLoad = {
     token_info: '',
     token_info_url: '',
     use_service: false,
+    review_bundle_mode: '',
+    review_bundle_catalog: '',
     service_base_url: [],
     service_constrained_search: {
         min_characters: 4,
