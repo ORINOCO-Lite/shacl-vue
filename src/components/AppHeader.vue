@@ -153,6 +153,7 @@
                     ></v-text-field>
                     <div style="display: flex;">
                         <v-btn @click="cancel()" style="margin-left: auto; margin-right: 0.5em;"><v-icon>mdi-close</v-icon> Cancel</v-btn>
+                        <v-btn v-if="configVarsMain.oidc?.length > 0" @click="loginToOidcServer(toRaw(configVarsMain.oidc[0]), 'dialog')" style="margin-right: 0.5em;"><v-icon>mdi-account</v-icon> Login</v-btn>
                         <v-btn @click="reset()" style="margin-right: 0.5em;"><v-icon>mdi-undo</v-icon> Reset</v-btn>
                         <v-btn type="submit"><v-icon>mdi-check-circle-outline</v-icon> Save</v-btn>
                     </div>
@@ -271,9 +272,18 @@
                                         variant="outlined"
                                         :error-messages="customError"
                                         @click:append-inner="visible = !visible"
+                                        @input="onUserTokenInput"
                                     ></v-text-field>
                                     <div style="display: flex;">
                                         <v-btn @click="reset()" style="margin-left: auto; margin-right: 0.5em;"><v-icon>mdi-undo</v-icon> Reset</v-btn>
+                                        <span v-if="configVarsMain.oidc?.length > 0">
+                                            <span v-if="getTokenDetails().tokenVal && ([true, false].includes(getTokenValidity()))">
+                                                <v-btn @click="refreshToken()" style="margin-right: 0.5em;"><v-icon>mdi-account</v-icon> Refresh token</v-btn>
+                                            </span>
+                                            <span v-else>
+                                                <v-btn @click="loginToOidcServer(toRaw(configVarsMain.oidc[0]), 'token-tab')" style="margin-right: 0.5em;"><v-icon>mdi-account</v-icon> Login</v-btn>
+                                            </span>
+                                        </span>
                                         <v-btn type="submit"><v-icon>mdi-check-circle-outline</v-icon> Save</v-btn>
                                     </div>
                                 </v-form>
@@ -282,7 +292,6 @@
                     </v-tabs-window-item>
 
                     <v-tabs-window-item value="prefixes">
-
                         <v-card flat class="overflow-y-auto h-100">
                             <v-card-title style="margin-bottom: 1em;">Prefixes</v-card-title>
                             <v-card-text>
@@ -357,7 +366,7 @@ import { inject, onBeforeMount, ref, watch, computed, mergeProps, toRaw} from 'v
 import { useToken } from '@/composables/tokens';
 import { useDisplay } from 'vuetify'
 import { useAppTheme } from '@/composables/useAppTheme'
-import { openOidcAuthUrl } from '@/modules/oidc'
+import { openOidcAuthUrl, exchangeRefreshToken} from '@/modules/oidc'
 const { isDark, toggleTheme } = useAppTheme()
 const { mobile } = useDisplay()
 const branch = __SV_BRANCH__;
@@ -375,7 +384,7 @@ const props = defineProps({
     logo: String,
 });
 
-const { token, setToken, clearToken } = useToken();
+const { token, setToken, clearToken, getTokenDetails, getTokenValidity} = useToken();
 const submitFn = inject('submitFn');
 const canSubmit = inject('canSubmit');
 const nodesToSubmit = inject('nodesToSubmit');
@@ -400,7 +409,7 @@ const rules = [
     },
 ];
 const customError = ref('')
-const emit = defineEmits(['tokenDialogOpened'])
+const emit = defineEmits(['tokenDialogOpened', 'reselectType'])
 const settingsDialog = ref(false);
 const tab = ref('info');
 const filterCurieText = ref('');
@@ -411,12 +420,39 @@ const filterConfigText = ref('');
 const appVariant = import.meta.env.VITE_SHACLVUE_VARIANT;
 const appName = ref('');
 const userIcon = ref('mdi-account');
+const userHasTyped = ref(false);
 
-onBeforeMount(() => {
+onBeforeMount(async () => {
+    const tokenDeets = getTokenDetails()
+    const tokenValid = getTokenValidity()
+    console.log(tokenDeets)
+    if (tokenDeets.tokenType == 'oidc') {
+        if (tokenValid) userIcon.value = 'mdi-account-check';
+        else {
+            try {
+                const ts = await refreshOidcLogin()
+                console.log(ts)
+                setToken(
+                    ts.access_token,
+                    'oidc',
+                    ts.expires_in,
+                    ts.refresh_token
+                )
+                userIcon.value = 'mdi-account-check';
+                emit('reselectType')
+            }
+            catch (error) {
+                console.log(error)
+            }
+            
+        }
+    }
+
     if (token.value !== null && token.value !== 'null') {
         tokenExists.value = true;
         tokenval.value = token.value;
     }
+    
     let variantAppName = `app_name_${appVariant}`;
     appName.value = config.value[variantAppName] || configVarsMain.appName; 
 });
@@ -509,6 +545,8 @@ watch(
             // appear (if an incorrect token is set) every single time a new class is selected
             // which IMO is too intrusive. Leaving it out until a better idea comes along.
             // http401response.value = false;
+
+            userIcon.value = 'mdi-account';
         }
     },
     { immediate: true }
@@ -550,6 +588,7 @@ watch(
             } else {
                 tokenWarning.value = true;
                 tokenDialog.value = true;
+                userIcon.value = 'mdi-account';
             }
             submitWarning.value = false;
         }
@@ -562,22 +601,49 @@ function forceError() {
 }
 
 async function save() {
+
     const { valid } = await tokenForm.value.validate();
     if (!valid) {
         console.log('invalid entry');
         return;
     }
-    setToken(tokenval.value);
+
     http401response.value = false;
     customError.value = ''
     tokenDialog.value = false;
+    if (userHasTyped.value && tokenval.value != token.value) {
+        setToken(tokenval.value, 'manual');
+        emit('reselectType')
+    }
     if (nodesToSubmit.value.length) {
         submitWarning.value = true;
     }
     settingsDialog.value = false;
+    userHasTyped.value = false;
 }
 
-function loginToOidcServer(config) {
+async function refreshToken() {
+    const tokens = await refreshOidcLogin();
+    if (tokens) {
+        setToken(
+            tokens.access_token,
+            'oidc',
+            tokens.expires_in,
+            tokens.refresh_token
+        )
+        if (settingsDialog.value == true) settingsDialog.value = false
+        emit('reselectType')
+    }
+}
+
+async function refreshOidcLogin() {
+    const tokenDeets = getTokenDetails()
+    console.log('refreshing token with', tokenDeets.refreshToken)
+    const tokens = await exchangeRefreshToken(tokenDeets.refreshToken, toRaw(configVarsMain.oidc[0]))
+    return tokens
+}
+
+function loginToOidcServer(config, source = 'header') {
     const el = (event) => {
         if (event.origin !== window.location.origin)
             return;
@@ -585,14 +651,33 @@ function loginToOidcServer(config) {
             return;
         if (!event.data?.type.includes("oidc-login"))
             return;
-        setToken(event.data.payload.accessToken)
+        setToken(
+            event.data.payload.accessToken,
+            'oidc',
+            event.data.payload.expiresIn,
+            event.data.payload.refreshToken,
+        )
         userIcon.value = 'mdi-account-check';
         tokenExists.value = true;
         tokenval.value = token.value;
+        if (source == 'dialog') {
+            http401response.value = false;
+            customError.value = ''
+            tokenDialog.value = false;
+            emit('reselectType')
+        }
+        if (source == 'token-tab') {
+            settingsDialog.value = false;
+            emit('reselectType')
+        }
         window.removeEventListener("message", el);
     }
     window.addEventListener("message", el);
     openOidcAuthUrl(config)
+}
+
+function onUserTokenInput() {
+    userHasTyped.value = true;
 }
 
 

@@ -104,6 +104,25 @@ export async function exchangeCode(code, config) {
 }
 
 
+export async function exchangeRefreshToken(refresh_token, config) {
+    // Exchange refresh token for new token by POST request
+    const body = new URLSearchParams({
+        client_id: config.client_id,
+        refresh_token: refresh_token,
+        grant_type: 'refresh_token',
+    });
+    const res = await fetch(`${config.base_url}/${config.token_endpoint}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body
+    });
+    const tokens = await res.json();
+    return tokens;
+}
+
+
 export const storage = {
     saveVerifier(v) {
         localStorage.setItem("pkce_verifier", v);
@@ -135,6 +154,3 @@ export const storage = {
         localStorage.removeItem("oauth_config");
     }
 };
-
-
-

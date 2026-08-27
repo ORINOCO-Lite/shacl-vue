@@ -1,5 +1,5 @@
 <template>
-    <AppHeader v-if="configReady" :logo="configVarsMain.appTheme.logo" @tokenDialogOpened="onTokenDialogOpened"/>
+    <AppHeader v-if="configReady" :logo="configVarsMain.appTheme.logo" @tokenDialogOpened="onTokenDialogOpened" @reselectType="reselectType()" />
     <v-main>
         <v-container fluid>
             <span v-if="page_ready">
@@ -666,6 +666,10 @@ async function selectType(IRI, fromUser, fromBackButton, includeSubs=false) {
     if (mobile.value) {
         drawer.value = false;
     }
+}
+
+function reselectType() {
+    if (selectedItem.value?.[0]) selectType(selectedItem.value[0], false, false, false)
 }
 
 function onTokenDialogOpened() {

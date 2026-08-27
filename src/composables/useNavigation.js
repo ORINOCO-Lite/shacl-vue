@@ -33,7 +33,7 @@ export function useNavigation(
         const edit = qparams.get('edit');
 
         if (token) {
-            setToken(token);
+            setToken(token, 'url');
         }
 
         if (nodeShape) {
