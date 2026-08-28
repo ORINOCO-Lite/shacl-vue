@@ -52,6 +52,8 @@
                     :color="configVarsMain.appTheme.link_color"
                     class="menu-progress"
                     rounded
+                    buffer-value="0"
+                    :indeterminate="fetchingDataLoader"
                 >
                     <template v-slot:default="{ value }">
                         <span class="progress-text" v-if="!fetchingDataLoader">
@@ -128,16 +130,6 @@
                                 </v-menu>
                             </template>
                         </v-list-item-title>
-                    </v-list-item>
-                </span>
-                <span v-if="fetchingDataLoader">
-                    <v-list-item>
-                        <small>
-                        <em>
-                            {{ fetchingText }}
-                        </em>
-                        </small>
-                        <v-progress-linear :color="configVarsMain.appTheme.link_color" indeterminate></v-progress-linear>
                     </v-list-item>
                 </span>
                 <span v-if="itemsToList.length">
@@ -676,6 +668,7 @@ watchEffect(async () => {
 
 const currentProgress = computed(() => {
     if (fetchingDataLoader.value) return 0
+    if (fetchedItemCount.value && !totalItemCount.value) return 100
     if (!fetchedItemCount.value || !totalItemCount.value) return 0
     return  Math.ceil(filteredItemCount.value / totalItemCount.value * 100)
 })
