@@ -272,7 +272,6 @@
                                         variant="outlined"
                                         :error-messages="customError"
                                         @click:append-inner="visible = !visible"
-                                        @input="onUserTokenInput"
                                     ></v-text-field>
                                     <div style="display: flex;">
                                         <v-btn @click="reset()" style="margin-left: auto; margin-right: 0.5em;"><v-icon>mdi-undo</v-icon> Reset</v-btn>
@@ -362,7 +361,7 @@
     </v-dialog>
 </template>
 <script setup>
-import { inject, onBeforeMount, ref, watch, computed, mergeProps, toRaw} from 'vue';
+import { inject, onBeforeMount, ref, watch, computed, mergeProps, toRaw } from 'vue';
 import { useToken } from '@/composables/tokens';
 import { useDisplay } from 'vuetify'
 import { useAppTheme } from '@/composables/useAppTheme'
@@ -420,7 +419,6 @@ const filterConfigText = ref('');
 const appVariant = import.meta.env.VITE_SHACLVUE_VARIANT;
 const appName = ref('');
 const userIcon = ref('mdi-account');
-const userHasTyped = ref(false);
 
 onBeforeMount(async () => {
     const tokenDeets = getTokenDetails()
@@ -504,15 +502,6 @@ function goToHome() {
     window.location.href = window.location.pathname;
 }
 
-function tokenFn() {
-    if (token.value !== null && token.value !== 'null') {
-        tokenExists.value = true;
-        tokenval.value = token.value;
-    }
-    tokenDialog.value = true;
-    visible.value = false;
-}
-
 function cancel() {
     tokenDialog.value = false;
 }
@@ -531,6 +520,7 @@ function reset() {
     http401response.value = false;
     customError.value = ''
     clearToken();
+    emit('reselectType')
 }
 
 watch(
@@ -611,7 +601,7 @@ async function save() {
     http401response.value = false;
     customError.value = ''
     tokenDialog.value = false;
-    if (userHasTyped.value && tokenval.value != token.value) {
+    if (tokenval.value != token.value) {
         setToken(tokenval.value, 'manual');
         emit('reselectType')
     }
@@ -619,7 +609,6 @@ async function save() {
         submitWarning.value = true;
     }
     settingsDialog.value = false;
-    userHasTyped.value = false;
 }
 
 async function refreshToken() {
@@ -674,10 +663,6 @@ function loginToOidcServer(config, source = 'header') {
     }
     window.addEventListener("message", el);
     openOidcAuthUrl(config)
-}
-
-function onUserTokenInput() {
-    userHasTyped.value = true;
 }
 
 
