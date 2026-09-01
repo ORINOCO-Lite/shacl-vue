@@ -46,6 +46,7 @@ const formData = inject('formData')
 const shapesDS = inject('shapesDS')
 const savedNodes = inject('savedNodes')
 const nodesToSubmit = inject('nodesToSubmit')
+const submitWarning = inject('submitWarning');
 const {
     showWizards,
     wizardEditors,
@@ -93,8 +94,8 @@ function saveWizardForm() {
     onFormWithWizardSave(props.classUri, props.recordUri, formData, rdfDS, configVarsMain)
 }
 
-function saveWizard(wizardData) {
-    handleWizardSave(
+async function saveWizard(wizardData) {
+    await handleWizardSave(
         props.context,
         props.classUri,
         wizardData,
@@ -104,6 +105,9 @@ function saveWizard(wizardData) {
         props.recordUri,
         formData
     )
+    if (nodesToSubmit.value.length) {
+        submitWarning.value = true;
+    }
 }
 
 
