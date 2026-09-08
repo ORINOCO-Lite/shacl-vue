@@ -849,12 +849,9 @@ watch(
 )
 
 function copyRecordLink() {
-    var nodeShapeCurie = toCURIE(props.classIRI, allPrefixes);
     var pidCurie = toCURIE(props.quad.subject.value, allPrefixes);
-    var nsQPvar = encodeURIComponent('sh:NodeShape')
-    var nsQP = encodeURIComponent(nodeShapeCurie)
     var pidQP = encodeURIComponent(pidCurie)
-    var queryParams = `?${nsQPvar}=${nsQP}&pid=${pidQP}`;
+    var queryParams = `?pid=${pidQP}`;
     var urlText = window.location.origin + window.location.pathname + queryParams
     copyTextToClipboard(urlText)
 }

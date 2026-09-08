@@ -423,7 +423,6 @@ const userIcon = ref('mdi-account');
 onBeforeMount(async () => {
     const tokenDeets = getTokenDetails()
     const tokenValid = getTokenValidity()
-    console.log(tokenDeets)
     if (tokenDeets.tokenType == 'oidc') {
         if (tokenValid) userIcon.value = 'mdi-account-check';
         else {

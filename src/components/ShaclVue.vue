@@ -540,7 +540,7 @@ watch(
             // Now transform/derive the searchable fields for "filter records by" 
             processSearchableFields();
             // Set component states from URL query parameters
-            setViewFromQuery();
+            await setViewFromQuery();
             // Get all class-related data
             idFilteredNodeShapeNames.value = getIdFilteredNodeShapeNames(configVarsMain, ID_IRI);
             noEditClassList.value = getNoEditClassList(configVarsMain, allPrefixes);

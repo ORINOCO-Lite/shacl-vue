@@ -251,6 +251,7 @@ component_config:
   W3CISO8601DateTimeEditor:
     yearStart: 1990
     yearEnd: 2028
+default_search_class: dlthings:Thing
 display_name_autogenerate:
   xyzri:ORCID: 'ORCID: {skos:notation}'
   xyzri:XYZActivity: '{dlthings:name}'
@@ -271,7 +272,13 @@ filter_records_by:
 hide_classes: []
 hide_classes_with_prefix: []
 no_edit_classes: []
+priority_classes:
+  - class: dlthings:Thing
+    icon: mdi-view-list
+    title: All
+    include_subclasses: true
 show_all_fields: false
+show_classes: []
 show_classes_with_prefix:
   - xyzri
 show_shapes_wo_id: false
@@ -280,7 +287,7 @@ show_shapes_wo_id: false
 A vast range of options allow customizing a `shacl-vue` deployment to suit specific use cases.
 
 ### `allow_copy_record_urls`
-A boolean that, when `true`, will show a share icon button on a record that will allow the user to copy the persistent URL of the record for sharing purposes
+A boolean that, when `true`, will show a share icon button on a record that will allow the user to copy the URL of the record (in the context of the specific `shacl-vue` deployment) for sharing purposes
 
 ### `allow_edit_instances`
 Allows an edit button to be added for all instances in an `InstancesSelectEditor`, i.e. the dropdown that allows users to select a specific record. This edit button allows the user to edit the specific record directly, without having to navigate to the record editor via the left-hand-side panel. `allow_edit_instances` can take a boolean value of `true` to apply this setting for all instances of all classes, or alternatively an array with specific class CURIEs to apply the setting only for instances of specific classes. The edit button will be disabled if the record's class is included in `no_edit_classes`.
@@ -299,6 +306,9 @@ A mapping of class URIs to [Material Design Icons](https://pictogrammers.com/lib
 
 ### `component_config`
 Allows component-specific parameters to be passed to name-identified components. Such parameters allow the customization of behavior or display in `shacl-vue` components. The object has the exact name of any editor or viewer component as its keys, and values are key-value parameter pairs that should feed into the associated components. The `component_config` option is the primary avenue for customizing the `NodeShapeViewer`, i.e. the component that renders a record, including the [special button](./features-record-viewer#special-buttons) and [back-link](./features-record-viewer#back-links) functionality. An example `component_config` configuration is provided below.
+
+### `default_search_class`
+`shacl-vue` allows text-based search across records of a specified class, both via UI controls and URL query parameters. If the `search` URL query parameter is provided without the `nodeShape` query parameter (the specific class CURIE), `shacl-vue` will take the default value from this config option. Its value defaults to `null`, but should be specified as `dlthings:Thing` for any deployment depending on the `dlthings:Thing` base class, along with the specification of an associated element in `priority_classes`.
 
 ### `display_name_autogenerate`
 By default `shacl-vue` uses the `skos:prefLabel` of a record, if available, as its display label. When not available, the `display_name_autogenerate` provides a means to autogenerate the display label of a record from a string serialization of other properties of the same record. This option should receive an object with class CURIEs as its keys and the values being string templates. Placeholders in such a template should be curly brackets containing the CURIE of a property of the class that should be used instead of the placeholder. See example usage below.
@@ -319,6 +329,9 @@ filter_records_by:
   - dlthings:pid
 ```
 There is (currently) no possibility to specify distinct filter-fields for records of different classes, i.e. the configuration applies across the board. However, the filtering will proceed even if the filter field is not contained within any given record.
+
+### `priority_classes`
+This allows specifying classes (as an array of clas CURIEs) that should be displayed with priority at the top of the app's class selection pane. Priority classes will be displayed in the order that they are provided via configuraton. A configured array element should include a `title`, `class`, and `icon`. If the `title` and `icon` are not provided, these defaults are taken from the specified class (also configured). The `include_subclasses` sub-option allows configuring a priority class to also find and filter subclass records of the selected class (as opposed to only records of the selected class itself). More specifically, this sub-option allows the specification of an "All" class item that will search across all known records in the deployment, provided that the deployment's schema is based on the `dlthings:Thing` base class. Together with `shacl-vue`'s text-search functionality, this effectively provides a powerful "search all records" feature.
 
 ### `show_classes`, `show_classes_with_prefix`, `hide_classes`, and `hide_classes_with_prefix`
 These are options that together specify which classes to show and hide in the left-hand-side panel listing all data types (i.e. classes):

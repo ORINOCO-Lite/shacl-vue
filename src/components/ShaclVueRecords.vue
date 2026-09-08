@@ -18,14 +18,33 @@
                         :class="props.mobile ? 'mobile-scaled' : '' "
                     >
                         <template v-slot:append-inner>
-                            <v-icon
-                                v-if="searchText"
-                                class="mr-2"
-                                @click.stop="clearField()"
-                                @mousedown.stop.prevent
-                            >
-                                mdi-close-circle
-                            </v-icon>
+                            <v-tooltip text="Copy search URL" location="top">
+                                <template v-slot:activator="{ props }">
+                                    <v-icon
+                                        v-bind="props"
+                                        v-if="searchText"
+                                        class="mr-2"
+                                        @click.stop="copySearchLink()"
+                                        @mousedown.stop.prevent
+                                        :color="linkCopied ? 'success' : ''"
+                                    >
+                                        {{ linkCopied ? 'mdi-check' : 'mdi-content-copy' }} 
+                                    </v-icon>
+                                </template>
+                            </v-tooltip>
+                            <v-tooltip text="Clear search text" location="top">
+                                <template v-slot:activator="{ props }">
+                                    <v-icon
+                                        v-bind="props"
+                                        v-if="searchText"
+                                        class="mr-2"
+                                        @click.stop="clearField()"
+                                        @mousedown.stop.prevent
+                                    >
+                                        mdi-close-circle
+                                    </v-icon>
+                                </template>
+                            </v-tooltip>
                         </template>
                         <template #append>
                             <span v-if="props.mobile">
@@ -110,6 +129,7 @@
 
 import { inject, ref} from 'vue';
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
+import { toCURIE } from '@/modules/utils'
 import {
     DynamicScroller,
     DynamicScrollerItem,
@@ -143,9 +163,11 @@ const orderTopDown = defineModel('orderTopDown')
 const formOpen = inject('formOpen');
 const openForms = inject('openForms')
 const configVarsMain = inject('configVarsMain')
+const allPrefixes = inject('allPrefixes')
 const itemRefs = ref([]);
 const orderIcon = ref('mdi-arrow-down-thick');
 const scrollerRef = ref(null);
+const linkCopied = ref(false);
 
 function toggleOrder() {
     orderTopDown.value = !orderTopDown.value;
@@ -170,6 +192,21 @@ function scrollToTop() {
 
 function onNamedNodeSelected(payload) {
   emit('handle-internal-navigation', payload)
+}
+
+async function copySearchLink() {
+    var curie = toCURIE(props.selectedIRI, allPrefixes);
+    var queryParams = `?${encodeURIComponent('sh:NodeShape')}=${encodeURIComponent(curie)}&search=${searchText.value}`;
+    var urlText = window.location.origin + window.location.pathname + queryParams
+    try {
+        await navigator.clipboard.writeText(urlText);
+        linkCopied.value = true
+        setTimeout(() => {
+            linkCopied.value = false;
+        }, 1000);
+    } catch (err) {
+        console.error('Clipboard copy failed:', err);
+    }
 }
 
 </script>
