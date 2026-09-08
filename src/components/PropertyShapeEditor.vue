@@ -59,28 +59,61 @@
                             :class="isExtraIndex(triple_idx) ? 'index-row' : ''"
                         >
                             <v-col v-if="triple_idx < currentCount" cols="9" class="d-flex align-center" @click.stop="showTooltip = false" @mouseenter="showTooltip = false">      
-                                &nbsp;              
+                                &nbsp;
+                                <span v-if="allowManualEntry">
+                                    <v-tooltip text="Toggle manual entry" location="bottom">
+                                        <template v-slot:activator="{ props }">
+                                            <v-btn
+                                                variant="text"
+                                                v-bind:="props"
+                                                no-gutters
+                                                @click="showManualEntry[triple_idx] = !showManualEntry[triple_idx]"
+                                                density="compact"
+                                                :icon="showManualEntry[triple_idx] ? 'mdi-pencil-off-outline' : 'mdi-pencil-outline'"
+                                                size="small"
+                                            ></v-btn>
+                                        </template>
+                                    </v-tooltip>
+                                </span>
                                 <Suspense>
                                     <template #default>
-                                            <component
-                                                v-model="
-                                                    formData.content[localNodeUid][
-                                                        localNodeIdx
-                                                    ][my_uid][triple_idx].value
-                                                "
-                                                :is="configMatchedComponent || matchedComponent"
-                                                :property_shape="localPropertyShape"
-                                                :node_uid="localNodeUid"
-                                                :node_idx="localNodeIdx"
-                                                :triple_uid="my_uid"
-                                                :triple_idx="triple_idx"
-                                                :disabled="compDisabled"
-                                                
-                                                @click.stop="showTooltip = false"
-                                                @focus="showTooltip = false"
-                                                @focusin="showTooltip = false"
-                                            >
-                                            </component>
+                                        <URIEditor
+                                            v-if="showManualEntry[triple_idx]"
+                                            v-model="
+                                                formData.content[localNodeUid][
+                                                    localNodeIdx
+                                                ][my_uid][triple_idx].value
+                                            "
+                                            :property_shape="localPropertyShape"
+                                            :node_uid="localNodeUid"
+                                            :node_idx="localNodeIdx"
+                                            :triple_uid="my_uid"
+                                            :triple_idx="triple_idx"
+                                            :disabled="compDisabled"
+                                            
+                                            @click.stop="showTooltip = false"
+                                            @focus="showTooltip = false"
+                                            @focusin="showTooltip = false"
+                                        ></URIEditor>
+                                        <component
+                                            v-else
+                                            v-model="
+                                                formData.content[localNodeUid][
+                                                    localNodeIdx
+                                                ][my_uid][triple_idx].value
+                                            "
+                                            :is="configMatchedComponent || matchedComponent"
+                                            :property_shape="localPropertyShape"
+                                            :node_uid="localNodeUid"
+                                            :node_idx="localNodeIdx"
+                                            :triple_uid="my_uid"
+                                            :triple_idx="triple_idx"
+                                            :disabled="compDisabled"
+                                            
+                                            @click.stop="showTooltip = false"
+                                            @focus="showTooltip = false"
+                                            @focusin="showTooltip = false"
+                                        ></component>
                                     </template>
                                     <template #fallback>
                                         <v-skeleton-loader
@@ -210,8 +243,9 @@ import {
 } from 'vue';
 import { SHACL, DLCO } from '@/modules/namespaces';
 import { useRules } from '@/composables/rules';
-import { nameOrCURIE, addCodeTagsToText, isObject, getNotes, toCURIE, toIRI, fillStringTemplate} from '@/modules/utils';
+import { nameOrCURIE, addCodeTagsToText, isObject, getNotes, toCURIE, toIRI, fillStringTemplate, nodeShapeHasPID} from '@/modules/utils';
 import { useCompConfig } from '@/composables/useCompConfig';
+import URIEditor from '@/components/URIEditor.vue';
 
 // ----- //
 // Props //
@@ -251,6 +285,8 @@ const currentCount = ref(defaultStep)
 const showIDoverride = ref(false)
 const idOverrideSwitch = ref(false)
 const fieldNotes = ref([]);
+const showManualEntry = ref([]);
+const allowManualEntry = ref(false);
 
 // ----------------- //
 // Lifecycle methods //
@@ -292,6 +328,33 @@ onBeforeMount(() => {
     }
 
     fieldNotes.value = getNotes(localPropertyShape.value);
+
+    let current_triple_objects_again = formData.content[localNodeUid.value][localNodeIdx.value][my_uid.value]
+    if (Array.isArray(current_triple_objects_again)) {
+        for (var i=0; i<current_triple_objects_again?.length; i++) {
+            showManualEntry.value.push(false);
+        }
+    } else {
+        showManualEntry.value.push(false);
+    }
+    
+    let isNamedNodeValue = [
+        SHACL.IRI.value,
+        SHACL.BlankNodeOrIRI.value].
+        includes(localPropertyShape.value[SHACL.nodeKind.value]) &&
+        localPropertyShape.value.hasOwnProperty(SHACL.class.value) &&
+        localPropertyShape.value[SHACL.class.value] !== null &&
+        nodeShapeHasPID(localPropertyShape.value[SHACL.class.value], shapesDS, ID_IRI.value)  //||
+        // localPropertyShape.value.hasOwnProperty(SHACL.or.value) &&
+        // Array.isArray(localPropertyShape.value[SHACL.or.value]) &&
+        // localPropertyShape.value[SHACL.or.value].every(obj => obj.hasOwnProperty(SHACL.class.value))
+
+    if (isNamedNodeValue && (configVarsMain.allowManualPidEntry === true ||
+        ( Array.isArray(configVarsMain.allowManualPidEntry) &&
+        configVarsMain.allowManualPidEntry.indexOf(toCURIE(localPropertyShape.value[SHACL.class.value], allPrefixes)) >= 0 ))
+    ) {
+        allowManualEntry.value = true;
+    }
 });
 
 onMounted(() => {
@@ -459,6 +522,7 @@ function addTriple(class_uri, subject_uri, predicate_uri, current_idx) {
     // because 'formData.addObject' does not allow for assigning a js object as the initial value;
     // this needs to be updated in shacl-tulip, and then fixed here.
     formData.content[class_uri][subject_uri][predicate_uri].splice(current_idx + 1, 0, {value:null, _key:crypto.randomUUID()});
+    showManualEntry.value.splice(current_idx + 1, 0, false)
     if (current_idx+1==currentCount.value) {
         currentCount.value+=1;
     }
@@ -484,6 +548,7 @@ function removeTriple(class_uri, subject_uri, predicate_uri, current_idx) {
     if (currentCount.value > l) {
         currentCount.value = l;
     }
+    showManualEntry.value.splice(current_idx, 1)
 }
 
 function isExtraIndex(idx) {

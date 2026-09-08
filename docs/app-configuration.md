@@ -226,6 +226,9 @@ allow_copy_record_urls: true
 allow_edit_instances:
   - dlthings:Checksum
   - xyzri:XYZInfluence
+allow_manual_pid_entry:
+  - dlthings:Thing
+  - xyzri:XYZPerson
 class_name_display: name
 class_icons:
   xyzri:ORCID: mdi-identifier
@@ -281,6 +284,9 @@ A boolean that, when `true`, will show a share icon button on a record that will
 
 ### `allow_edit_instances`
 Allows an edit button to be added for all instances in an `InstancesSelectEditor`, i.e. the dropdown that allows users to select a specific record. This edit button allows the user to edit the specific record directly, without having to navigate to the record editor via the left-hand-side panel. `allow_edit_instances` can take a boolean value of `true` to apply this setting for all instances of all classes, or alternatively an array with specific class CURIEs to apply the setting only for instances of specific classes. The edit button will be disabled if the record's class is included in `no_edit_classes`.
+
+### `allow_manual_pid_entry`
+Not all entities will necessarily exist as dedicated records in a `shacl-vue` deployment, while existing records might still want to refer to such entities by `PID` (i.e. link a named node). In such cases, where `shacl-vue`'s behaviour (based on nodeshapes) would then expect a user to select a record from a list (or create and then select a new record), the `allow_manual_pid_entry` option provides the user with an option to enter the `PID` of the "linked record" manually (and to toggle between that and standard behaviour). The config option can receive a boolean value (`true | false`) or an array of class IRIs in CURIE format. `true` will allow manual entry for all fields that would normally have been accessible via a record selector, `false` will never allow it (this is the default), and an array of class CURIEs will allow manual entry for all fields in a form that have any of those classes as the range.
 
 ### `class_name_display`
 Specifies which format to use when displaying class names in the `shacl-vue` UI. Allowed options are:

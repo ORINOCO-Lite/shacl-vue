@@ -32,8 +32,34 @@
                     </template>
                 </v-select>
             </v-row>
-            <v-row v-if="orElementSelected">
-                <InstancesSelectEditor 
+            <v-row v-if="orElementSelected" align="center">
+                <span v-if="allowManualEntry">
+                    <v-tooltip text="Toggle manual entry" location="bottom">
+                        <template v-slot:activator="{ props }">
+                            <v-btn
+                                variant="text"
+                                v-bind:="props"
+                                no-gutters
+                                @click="showManualEntry = !showManualEntry"
+                                density="compact"
+                                :icon="showManualEntry ? 'mdi-pencil-off-outline' : 'mdi-pencil-outline'"
+                                size="small"
+                            ></v-btn>
+                        </template>
+                    </v-tooltip>
+                </span>
+                <URIEditor
+                    v-if="showManualEntry"
+                    v-model="subValues.selectedInstance"
+                    :property_shape="computedPropertyShape"
+                    :node_uid="node_uid"
+                    :node_idx="node_idx"
+                    :triple_uid="triple_uid"
+                    :triple_idx="triple_idx"
+                    :disabled="disabled"
+                ></URIEditor>
+                <InstancesSelectEditor
+                    v-else
                     v-model="subValues.selectedInstance"
                     :key="subValues.selectedClassIRI || 'none'"
                     :property_shape="computedPropertyShape"
@@ -56,8 +82,9 @@ import { useRegisterRef } from '@/composables/refregister';
 import { useBaseInput } from '@/composables/base';
 import { RDF } from '@/modules/namespaces';
 import { DataFactory } from 'n3';
-import { getDisplayName, toCURIE} from '@/modules/utils'
+import { getDisplayName, toCURIE, nodeShapeHasPID} from '@/modules/utils'
 import InstancesSelectEditor from '@/components/InstancesSelectEditor.vue'
+import URIEditor from '@/components/URIEditor.vue';
 const { namedNode } = DataFactory;
 
 // ----- //
@@ -98,6 +125,9 @@ const selector = ref(null);
 const orElementSelected = ref(false);
 const computedPropertyShape = ref({...props.property_shape,});
 
+const showManualEntry = ref(false);
+const allowManualEntry = ref(false);
+
 function valueParser(value) {
     // Parsing internalValue into ref values for separate subcomponent(s)
     return {
@@ -137,6 +167,12 @@ onBeforeMount(async () => {
     } finally {
         fetchingRecordLoader.value = false
     }
+    if (configVarsMain.allowManualPidEntry === true ||
+        ( Array.isArray(configVarsMain.allowManualPidEntry) &&
+        configVarsMain.allowManualPidEntry.indexOf(toCURIE(computedPropertyShape.value[SHACL.class.value], allPrefixes)) >= 0 )
+    ) {
+        allowManualEntry.value = true;
+    }
 })
 
 function onInstanceSelected(instanceValue) {
@@ -160,6 +196,7 @@ const orList = computed(() => {
 
 
 function selectORelement(el, fromMount = false) {
+    allowManualEntry.value = false;
     // set whole subValues object to ensure reactivity
     subValues.value = {
         selectedClassIRI: el || null,
@@ -174,6 +211,12 @@ function selectORelement(el, fromMount = false) {
     };
     delete computedPropertyShape.value[SHACL.or.value]
     orElementSelected.value = !!el;
+    if (configVarsMain.allowManualPidEntry === true ||
+        ( Array.isArray(configVarsMain.allowManualPidEntry) &&
+        configVarsMain.allowManualPidEntry.indexOf(toCURIE(computedPropertyShape.value[SHACL.class.value], allPrefixes)) >= 0 )
+    ) {
+        allowManualEntry.value = true;
+    }
 }
 
 </script>

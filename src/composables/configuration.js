@@ -24,6 +24,7 @@ const mainVarsToLoad = {
     no_edit_classes: [],
     allow_edit_instances: [],
     allow_copy_record_urls: true,
+    allow_manual_pid_entry: false,
     editor_selection: {},
     filter_records_by: [
         "skos:prefLabel",

@@ -7,10 +7,39 @@
         hide-details="auto"
     >
         <div class="d-flex align-center" style="width: 100%">
+            <span v-if="allowManualEntry">
+                <v-tooltip text="Toggle manual entry" location="bottom">
+                    <template v-slot:activator="{ props }">
+                        <v-btn
+                            variant="text"
+                            v-bind:="props"
+                            no-gutters
+                            @click="showManualEntry = !showManualEntry"
+                            density="compact"
+                            :icon="showManualEntry ? 'mdi-pencil-off-outline' : 'mdi-pencil-outline'"
+                            size="small"
+                        ></v-btn>
+                    </template>
+                </v-tooltip>
+            </span>
             <Suspense>
                 <template #default>
+                        <URIEditor
+                            v-if="showManualEntry"
+                            v-model="formData.content[associationClass][associationClassRecordID][keyPropertyUID][keyPropertyIDX].value"
+                            :property_shape="keyPropertyShape"
+                            :node_uid="associationClass"
+                            :node_idx="associationClassRecordID"
+                            :triple_uid="keyPropertyUID"
+                            :triple_idx="keyPropertyIDX"
+                            :disabled="compDisabled"
+                            
+                            @click.stop="showTooltip = false"
+                            @focus="showTooltip = false"
+                            @focusin="showTooltip = false"
+                        ></URIEditor>
                         <component
-                            v-if="formData.content[associationClass][associationClassRecordID][keyPropertyUID][keyPropertyIDX]"
+                            v-else
                             v-model="formData.content[associationClass][associationClassRecordID][keyPropertyUID][keyPropertyIDX].value"
                             :is="configMatchedComponent || matchedComponent"
                             :property_shape="keyPropertyShape"
@@ -84,6 +113,7 @@ import { RDF } from '@/modules/namespaces';
 import { findObjectByKey, getNodeShapePropertyWithAnnotations, toCURIE, toIRI } from '@/modules/utils';
 import { DataFactory } from 'n3';
 import { useCompConfig } from '@/composables/useCompConfig';
+import URIEditor from '@/components/URIEditor.vue';
 const { namedNode, blankNode, quad } = DataFactory;
 const triggerListGenAndItemSelect = ref(false)
 provide('triggerListGenAndItemSelect', triggerListGenAndItemSelect);
@@ -148,6 +178,9 @@ const componentClass = toCURIE(props.property_shape[SHACL.class.value], allPrefi
 const componentClassConfig = componentConfig[componentClass]
 const registerHandler = inject('registerHandler');
 const componentInstanceKey = ref(null);
+
+const showManualEntry = ref(false);
+const allowManualEntry = ref(false);
 
 function valueParser(value) {
     // Parsing internalValue into ref values for separate subcomponent(s)
@@ -260,6 +293,25 @@ onBeforeMount(() => {
             }
         }
     }
+    // (in between step: check ability to edit pid, set related flags)
+    let isNamedNodeValue = [
+        SHACL.IRI.value,
+        SHACL.BlankNodeOrIRI.value].
+        includes(keyPropertyShape.value[SHACL.nodeKind.value]) &&
+        keyPropertyShape.value.hasOwnProperty(SHACL.class.value) &&
+        keyPropertyShape.value[SHACL.class.value] !== null &&
+        nodeShapeHasPID(keyPropertyShape.value[SHACL.class.value], shapesDS, ID_IRI.value) //||
+        // keyPropertyShape.value.hasOwnProperty(SHACL.or.value) &&
+        // Array.isArray(keyPropertyShape.value[SHACL.or.value]) &&
+        // keyPropertyShape.value[SHACL.or.value].every(obj => obj.hasOwnProperty(SHACL.class.value))
+
+    if (isNamedNodeValue && (configVarsMain.allowManualPidEntry === true ||
+        ( Array.isArray(configVarsMain.allowManualPidEntry) &&
+        configVarsMain.allowManualPidEntry.indexOf(toCURIE(keyPropertyShape.value[SHACL.class.value], allPrefixes)) >= 0 ))
+    ) {
+        allowManualEntry.value = true;
+    }
+
     // See if any config-driven editor matching is available
     // We loop through all keys of config[editor_selection] and assign and exit on first matched
     let configMatchedComponentName
