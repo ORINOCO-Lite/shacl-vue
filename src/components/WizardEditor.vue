@@ -2,7 +2,7 @@
     <v-card class="pa-1" v-if="props.wizardConfig">
         <v-card-title>{{ props.wizardConfig.name }}</v-card-title>
         <v-card-text>
-            {{ props.wizardConfig.description }}
+            <div class="markdown-preview" v-html="renderedMarkdown" />
         </v-card-text>
         <v-card-text class="text-caption">
             <v-form
@@ -74,8 +74,11 @@
 </template>
 
 <script setup>
-import { reactive, ref, toRaw, watch, inject} from 'vue';
+import { reactive, ref, toRaw, watch, inject, computed} from 'vue';
 import WizardEditorInput from './WizardEditorInput.vue'
+import MarkdownIt from 'markdown-it'
+import hljs from 'highlight.js'
+import DOMPurify from 'dompurify'
 
 // Define component props
 const props = defineProps({
@@ -263,6 +266,36 @@ function applyResultToModel(inputs, model, result) {
         model[prop] = value
     }
 }
+
+const md = new MarkdownIt({
+    breaks: true,
+    highlight(code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+            try {
+                return hljs.highlight(code, { language: lang }).value
+            } catch (e) {
+                //
+            }
+        }
+        return hljs.highlightAuto(code).value
+    }
+})
+
+function normalizeMarkdownNewlines(text) {
+    const normalizedText = text
+        .replace(/\r\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+    return normalizedText
+}
+
+const renderedMarkdown = computed(() => {
+    const normalized = normalizeMarkdownNewlines(props.wizardConfig.description || '')
+    const raw = md.render(normalized)
+    const renderedMD = DOMPurify.sanitize(raw, {
+        USE_PROFILES: { html: true }
+    })
+    return renderedMD
+})
 </script>
 
 <style scoped>
@@ -270,4 +303,110 @@ function applyResultToModel(inputs, model, result) {
     padding-bottom: 0.2em;
     margin-bottom: 0.2em;
 }
+
+.markdown-preview {
+  background-color: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+  border: none;
+  padding: 0px;
+  height: 100%;
+  overflow-y: auto;
+  line-height: 1.6;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-size: 0.95rem;
+}
+
+.markdown-preview a {
+  color: rgb(var(--v-theme-primary));
+}
+
+.markdown-preview > * {
+  margin-top: 0;
+  margin-bottom: 1.2em;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0 1em;
+  list-style-position: outside;
+}
+
+.markdown-preview li {
+  margin: 0.25em 0;
+}
+
+.markdown-preview h1 {
+  font-size: 1.8em;
+  margin-bottom: 0.6em;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 0.3em;
+}
+
+.markdown-preview h2 {
+  font-size: 1.5em;
+}
+
+.markdown-preview h3 {
+  font-size: 1.25em;
+}
+
+.v-theme--light .markdown-preview pre {
+  background: #f6f8fa;
+  color: #24292f;
+}
+
+.v-theme--dark .markdown-preview pre {
+  background: #161b22;
+  color: #e6edf3;
+}
+
+.markdown-preview pre {
+  padding: 12px 14px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.markdown-preview pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+.v-theme--light .markdown-preview :not(pre) > code {
+  background: rgba(0, 0, 0, 0.06);
+  color: #24292f;
+}
+
+.v-theme--dark .markdown-preview :not(pre) > code {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e6edf3;
+}
+
+.markdown-preview :not(pre) > code {
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.markdown-preview blockquote {
+  border-left: 4px solid #d0d7de;
+  padding-left: 1em;
+  color: #57606a;
+}
+
+.markdown-preview hr {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 2em 0;
+}
+
 </style>
