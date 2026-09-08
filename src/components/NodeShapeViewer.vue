@@ -293,6 +293,11 @@
                 </code>
             </v-card-text>
             <v-card-actions>
+                <v-btn @click="copyTTL()"
+                    :prepend-icon="ttlCopied ? 'mdi-check' : 'mdi-content-copy'"
+                    :color="ttlCopied ? 'success' : ''"
+                    >Copy</v-btn
+                >
                 <v-btn prepend-icon="mdi-download" @click="downloadTTL()"
                     >Download</v-btn
                 >
@@ -380,6 +385,7 @@ const showBlankNodes = ref(false);
 const shape_obj = shapesDS.data.nodeShapes[props.classIRI];
 const resolveExternally = ref(false);
 const linkCopied = ref(false)
+const ttlCopied = ref(false)
 const showCopyLink = ref(false)
 const propertyShapes = {};
 for (var p of shape_obj.properties) {
@@ -853,13 +859,20 @@ function copyRecordLink() {
     copyTextToClipboard(urlText)
 }
 
-async function copyTextToClipboard(text) {
+async function copyTextToClipboard(text, source='link') {
     try {
         await navigator.clipboard.writeText(text);
-        linkCopied.value = true
-        setTimeout(() => {
-            linkCopied.value = false;
-        }, 1000);
+        if (source=='ttl') {
+            ttlCopied.value = true
+            setTimeout(() => {
+                ttlCopied.value = false;
+            }, 1000);
+        } else {
+            linkCopied.value = true
+            setTimeout(() => {
+                linkCopied.value = false;
+            }, 1000);
+        }
     } catch (err) {
         console.error('Clipboard copy failed:', err);
     }
@@ -913,6 +926,10 @@ async function viewRDF() {
 
 function downloadTTL() {
     dlTTL(ttlDialog_content.value, toSnakeCase(ttlDialog_name.value) + '.ttl');
+}
+
+function copyTTL() {
+    copyTextToClipboard(ttlDialog_content.value, 'ttl')
 }
 
 function showHideBlankNodes() {
