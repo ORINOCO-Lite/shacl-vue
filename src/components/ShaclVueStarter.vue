@@ -448,9 +448,9 @@ const {
     selectedItem,
     selectType,
     setToken,
+    clearToken,
     shapesDS,
     textMatchType,
-    clearToken,
 )
 // Form submission
 const {

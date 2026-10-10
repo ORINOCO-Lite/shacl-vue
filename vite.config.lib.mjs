@@ -68,6 +68,6 @@ export default defineConfig({
         globals: true,
         environment: 'happy-dom',
         pool: 'vmThreads',
-        server: { deps: { inline: ['shacl-tulip'] } },
+        server: { deps: { inline: ['shacl-tulip', 'vuetify'] } },
     },
 });
