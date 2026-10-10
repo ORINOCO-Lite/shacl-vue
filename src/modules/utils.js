@@ -58,18 +58,20 @@ export function isObject(val) {
     return typeof val === 'object' && !Array.isArray(val) && val !== null;
 }
 
-export function dlJSON(jsonObject) {
+export function dlJSON(jsonObject, filename = 'data.json') {
     // Data
-    const jsonString = JSON.stringify(jsonObject);
+    const jsonString = JSON.stringify(jsonObject, null, 2) + '\n';
     const blob = new Blob([jsonString], { type: 'application/json' });
     // Create a link element
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'data.json';
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = filename;
     document.body.appendChild(link);
     // Click to download, and remove
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 export function dlTTL(ttlstring, filename) {
@@ -77,12 +79,14 @@ export function dlTTL(ttlstring, filename) {
     const blob = new Blob([ttlstring], { type: 'text/turtle' });
     // Create a link element
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    link.href = url;
     link.download = filename;
     document.body.appendChild(link);
     // Click to download, and remove
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 export function downloadTSV(data, filename) {

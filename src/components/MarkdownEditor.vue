@@ -58,11 +58,9 @@
 import { useRules } from '../composables/rules';
 import { useRegisterRef } from '../composables/refregister';
 import { useBaseInput } from '@/composables/base';
+import { renderMarkdownSafely } from '@/modules/markdown';
 import { computed, ref } from 'vue';
 import MarkdownCodeMirror from '@/components/MarkdownCodeMirror.vue'
-import MarkdownIt from 'markdown-it'
-import hljs from 'highlight.js'
-import DOMPurify from 'dompurify'
 
 const props = defineProps({
     modelValue: String,
@@ -97,34 +95,8 @@ function valueCombiner(values) {
 
 const markdownDialog = ref(false)
 
-const md = new MarkdownIt({
-    breaks: true,
-    highlight(code, lang) {
-        if (lang && hljs.getLanguage(lang)) {
-            try {
-                return hljs.highlight(code, { language: lang }).value
-            } catch (e) {
-                //
-            }
-        }
-        return hljs.highlightAuto(code).value
-    }
-})
-
-function normalizeMarkdownNewlines(text) {
-    const normalizedText = text
-        .replace(/\r\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-    return normalizedText
-}
-
 const renderedMarkdown = computed(() => {
-    const normalized = normalizeMarkdownNewlines(subValues.value.text || '')
-    const raw = md.render(normalized)
-    const renderedMD = DOMPurify.sanitize(raw, {
-        USE_PROFILES: { html: true }
-    })
-    return renderedMD
+    return renderMarkdownSafely(subValues.value.text)
 })
 
 </script>

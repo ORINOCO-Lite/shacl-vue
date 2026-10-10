@@ -96,10 +96,11 @@
             </span>
         </v-card-text>
         <v-card-actions class="position-absolute top-0 right-0 pa-2">
-            <v-btn v-if="!responseReceived && nodesToSubmit.length" @click="downloadTTL()">
-                <v-icon>mdi-download</v-icon> Download RDF
+            <v-btn v-if="!responseReceived && nodesToSubmit.length" @click="downloadRecords()">
+                <v-icon>mdi-download</v-icon>
+                {{ patchDownloadMode ? 'Download review bundle' : 'Download RDF' }}
             </v-btn>
-            <v-btn v-if="!responseReceived && nodesToSubmit.length" type="submit" @click="submit()">
+            <v-btn v-if="!patchDownloadMode && !responseReceived && nodesToSubmit.length" type="submit" @click="submit()">
                 <v-icon>mdi-check-circle-outline</v-icon> Submit
             </v-btn>
             <v-btn v-if="responseReceived" @click="clearSubmitErrors()">
@@ -133,8 +134,9 @@
 </template>
 
 <script setup>
-import { ref, inject } from 'vue';
-import { getDisplayName, getRecordDisplayLabel, getRecordQuads, quadsToTTL, dlTTL} from '@/modules/utils';
+import { computed, ref, inject } from 'vue';
+import { getDisplayName, getRecordDisplayLabel, getRecordQuads, quadsToTTL, dlJSON, dlTTL} from '@/modules/utils';
+import { buildReviewBundle, reviewBundleFilename } from '@/modules/review-bundle';
 
 import { useToken } from '@/composables/tokens';
 import { DataFactory, Store } from 'n3';
@@ -167,6 +169,9 @@ const responseErrors = ref([]);
 
 const failureToggleIcon = ref('mdi-chevron-right');
 const copiedIndex = ref(null);
+const patchDownloadMode = computed(
+    () => config.value?.review_bundle_mode === 'patch-download'
+);
 
 function toggleFailureResponse() {
     showCompleteFailure.value = !showCompleteFailure.value;
@@ -228,8 +233,33 @@ async function submit() {
     awaitingResponse.value = false;
 }
 
-async function downloadTTL() {
-    let toSubmit = [...nodesToSubmit.value];
+async function downloadRecords() {
+    const toSubmit = nodesToSubmit.value.filter((node) =>
+        selectedNodesToSubmit.value.includes(node.node_iri)
+    );
+    if (patchDownloadMode.value) {
+        try {
+            const response = await fetch(config.value.review_bundle_catalog, {
+                cache: 'no-cache',
+                credentials: 'omit',
+            });
+            if (!response.ok) {
+                throw new Error(`record catalog request failed (${response.status})`);
+            }
+            const bundle = await buildReviewBundle({
+                catalog: await response.json(),
+                graph: rdfDS.data.graph,
+                prefixes: allPrefixes,
+                selectedNodes: toSubmit,
+            });
+            dlJSON(bundle, reviewBundleFilename(bundle.records));
+        } catch (error) {
+            responseFailure.value = true;
+            responseReceived.value = true;
+            responseText.value = `The review bundle could not be created: ${error.message}`;
+        }
+        return;
+    }
     const ds = new Store();
     for (const node of toSubmit) {
         var quads = getRecordQuads(node.node_iri, rdfDS.data.graph, true);
